@@ -1,0 +1,19 @@
+{
+  "name": "maako",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "npm run gateway",
+    "gateway": "nodemon src/api-gateway/index.js",
+    "user-service": "nodemon src/services/user-service/index.js",
+    "product-service": "nodemon src/services/product-service/index.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "mongoose": "^9.7.4",
+    "mysql2": "^3.23.0",
+    "nodemon": "^3.1.14",
+    "swagger-jsdoc": "^6.0.0",
+    "swagger-ui-express": "^5.0.0"
+  }
+}
