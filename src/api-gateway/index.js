@@ -55,6 +55,10 @@ async function proxyRequest(req, res, targetBaseUrl, serviceName) {
 app.use("/api/users", (req, res) => proxyRequest(req, res, USER_SERVICE_URL, "User service"));
 app.use("/api/products", (req, res) => proxyRequest(req, res, PRODUCT_SERVICE_URL, "Product service"));
 
-app.listen(PORT, () => {
-  console.log(`API Gateway running on port ${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`API Gateway running on port ${PORT}`);
+  });
+}
+
+export default app;
