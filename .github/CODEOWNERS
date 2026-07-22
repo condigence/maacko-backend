@@ -1,0 +1,10 @@
+# GitHub CODEOWNERS file
+# This file designates code owners for different parts of the repository
+# and specifies required reviewers for pull requests
+
+# Default reviewer for all changes to develop and feature branches
+develop/ @copilot
+feature/ @copilot
+
+# Default reviewers for all files
+* @copilot
