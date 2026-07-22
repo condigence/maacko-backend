@@ -1,1 +1,6 @@
 node_modules/
+.env
+
+# Mock order store gets rewritten on every test payment - keep the seeded catalog only
+src/services/payment-service/data/orders.json
+src/services/auth-service/data/store.json

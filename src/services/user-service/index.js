@@ -1,11 +1,13 @@
+import "dotenv/config";
 import express from "express";
 import { connectMySQL, disconnectMySQL } from "../../db/mysql.js";
 import { setupSwagger } from "../../../swagger-docs/user/user-swagger.js";
+import { requireAuth, requireRole } from "../../middleware/auth.js";
 
 const app = express();
 app.use(express.json());
 setupSwagger(app);
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.USER_SERVICE_PORT || process.env.PORT || 3001;
 const gatewayUrl = process.env.GATEWAY_URL || "http://127.0.0.1:3000";
 
 async function ensureGateway() {
@@ -47,7 +49,7 @@ app.get("/users/:id", async (req, res) => {
   }
 });
 
-app.post("/users", async (req, res) => {
+app.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
   try {
     const { name, email } = req.body;
     if (!name || !email) {
@@ -70,7 +72,7 @@ app.post("/users", async (req, res) => {
   }
 });
 
-app.put("/users/:id", async (req, res) => {
+app.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
   try {
     const { name, email } = req.body;
     const fields = [];
@@ -116,7 +118,7 @@ app.put("/users/:id", async (req, res) => {
   }
 });
 
-app.delete("/users/:id", async (req, res) => {
+app.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
   try {
     const connection = await connectMySQL();
     const [result] = await connection.query("DELETE FROM users WHERE id = ?", [req.params.id]);
