@@ -1,0 +1,393 @@
+{
+  "nextAccountId": 6,
+  "nextOtpId": 28,
+  "nextRefreshId": 9,
+  "accounts": [
+    {
+      "id": 1,
+      "role": "vendor",
+      "identifier": "9876543210",
+      "name": null,
+      "is_verified": 1,
+      "created_at": "2026-07-22T15:35:43.206Z"
+    },
+    {
+      "id": 2,
+      "role": "vendor",
+      "identifier": "vendor.test@example.com",
+      "name": null,
+      "is_verified": 1,
+      "created_at": "2026-07-22T15:56:15.961Z"
+    },
+    {
+      "id": 3,
+      "role": "vendor",
+      "identifier": "fresh.vendor@example.com",
+      "name": null,
+      "is_verified": 1,
+      "created_at": "2026-07-22T15:56:48.371Z"
+    },
+    {
+      "id": 4,
+      "role": "vendor",
+      "identifier": "playwright.success@example.com",
+      "name": null,
+      "is_verified": 1,
+      "created_at": "2026-07-22T16:03:26.308Z"
+    },
+    {
+      "id": 5,
+      "role": "vendor",
+      "identifier": "9304191911",
+      "name": null,
+      "is_verified": 1,
+      "created_at": "2026-07-22T16:09:53.826Z"
+    }
+  ],
+  "otpCodes": [
+    {
+      "id": 1,
+      "role": "vendor",
+      "identifier": "9876543210",
+      "otp_hash": "653f6462978772ec18558f2d43c05d40c8785336d3aa698790cf6557791a11ec",
+      "expires_at": "2026-07-22T15:36:04.290Z",
+      "attempts": 1,
+      "consumed": 1,
+      "created_at": "2026-07-22T15:31:04.290Z"
+    },
+    {
+      "id": 2,
+      "role": "vendor",
+      "identifier": "9876543210",
+      "otp_hash": "1372a622554163c62163c4f62dbf7fc372b5e61541a352e18c06e1fceaa920ec",
+      "expires_at": "2026-07-22T15:41:50.762Z",
+      "attempts": 0,
+      "consumed": 1,
+      "created_at": "2026-07-22T15:36:50.763Z"
+    },
+    {
+      "id": 3,
+      "role": "vendor",
+      "identifier": "test@example.com",
+      "otp_hash": "2c24715257417d67880ea01338e1209942ecd2a5493596874264f70dcc1e62b5",
+      "expires_at": "2026-07-22T16:00:57.728Z",
+      "attempts": 0,
+      "consumed": 0,
+      "created_at": "2026-07-22T15:55:57.728Z"
+    },
+    {
+      "id": 4,
+      "role": "vendor",
+      "identifier": "9876543210",
+      "otp_hash": "6e25b23c38270184abf295d32e6d3cbdb1f794d24c5092ac0318e37cf26d8a82",
+      "expires_at": "2026-07-22T16:00:57.836Z",
+      "attempts": 0,
+      "consumed": 0,
+      "created_at": "2026-07-22T15:55:57.836Z"
+    },
+    {
+      "id": 5,
+      "role": "vendor",
+      "identifier": "vendor.test@example.com",
+      "otp_hash": "6c3267f985339a0034775f6b8b6c86c48b2678113f4f25886dbaea255e72e997",
+      "expires_at": "2026-07-22T16:01:15.739Z",
+      "attempts": 0,
+      "consumed": 1,
+      "created_at": "2026-07-22T15:56:15.739Z"
+    },
+    {
+      "id": 6,
+      "role": "vendor",
+      "identifier": "fresh.vendor@example.com",
+      "otp_hash": "d72773862b41397052245ade8cbfce30f852bb02a79bf5f0e471415955390ee1",
+      "expires_at": "2026-07-22T16:01:47.767Z",
+      "attempts": 1,
+      "consumed": 1,
+      "created_at": "2026-07-22T15:56:47.767Z"
+    },
+    {
+      "id": 7,
+      "role": "vendor",
+      "identifier": "cors.test@example.com",
+      "otp_hash": "93c3640e496d962c31c88bc43d73ac4283a20a98ebface6ae38c48328023905c",
+      "expires_at": "2026-07-22T16:02:04.682Z",
+      "attempts": 0,
+      "consumed": 0,
+      "created_at": "2026-07-22T15:57:04.682Z"
+    },
+    {
+      "id": 8,
+      "role": "vendor",
+      "identifier": "cors.test2@example.com",
+      "otp_hash": "c25457d36faca94f78412af75cb8cf9aa57c59a547d322aa7a6ce6bfa7c7df2a",
+      "expires_at": "2026-07-22T16:02:16.313Z",
+      "attempts": 0,
+      "consumed": 0,
+      "created_at": "2026-07-22T15:57:16.313Z"
+    },
+    {
+      "id": 9,
+      "role": "vendor",
+      "identifier": "resend.test@example.com",
+      "otp_hash": "5e56c7abe2aba91eaab7a2c7bca411613589978ab6e7f5b204347fe9ec7d6f84",
+      "expires_at": "2026-07-22T16:02:46.668Z",
+      "attempts": 0,
+      "consumed": 0,
+      "created_at": "2026-07-22T15:57:46.668Z"
+    },
+    {
+      "id": 10,
+      "role": "vendor",
+      "identifier": "lockout.test@example.com",
+      "otp_hash": "e43256cc388efaf7b0f753285b9fa3853a58f46ce041224aeb1759c6fd73845b",
+      "expires_at": "2026-07-22T16:03:02.796Z",
+      "attempts": 5,
+      "consumed": 1,
+      "created_at": "2026-07-22T15:58:02.796Z"
+    },
+    {
+      "id": 11,
+      "role": "vendor",
+      "identifier": "proxy.check@example.com",
+      "otp_hash": "4f8c16bcf0cd5f8c20ff4a38e079df81baf7cba01b9da47b094eb0579d714da1",
+      "expires_at": "2026-07-22T16:07:16.264Z",
+      "attempts": 0,
+      "consumed": 0,
+      "created_at": "2026-07-22T16:02:16.264Z"
+    },
+    {
+      "id": 12,
+      "role": "vendor",
+      "identifier": "9304191911",
+      "otp_hash": "8c94d58ec86d8754034529dcc815122580a9f6c3712e823b098c53562e6b4256",
+      "expires_at": "2026-07-22T16:07:20.557Z",
+      "attempts": 3,
+      "consumed": 0,
+      "created_at": "2026-07-22T16:02:20.557Z"
+    },
+    {
+      "id": 13,
+      "role": "vendor",
+      "identifier": "playwright.vendor@example.com",
+      "otp_hash": "c8c2df6103d2e59d164e1043476e424c178a1ec0be61ff806c3c26e3406de685",
+      "expires_at": "2026-07-22T16:07:47.316Z",
+      "attempts": 1,
+      "consumed": 0,
+      "created_at": "2026-07-22T16:02:47.316Z"
+    },
+    {
+      "id": 14,
+      "role": "vendor",
+      "identifier": "playwright.success@example.com",
+      "otp_hash": "8430f728c7d669c7e1a72a082b5c42b919cf038c64397ce9b61e0be511784e57",
+      "expires_at": "2026-07-22T16:08:25.517Z",
+      "attempts": 0,
+      "consumed": 1,
+      "created_at": "2026-07-22T16:03:25.517Z"
+    },
+    {
+      "id": 15,
+      "role": "vendor",
+      "identifier": "lockout.ui.test@example.com",
+      "otp_hash": "8a420671dd5ad98398af78f6612584d78bc40c94618825e4d63a2a32a755a23d",
+      "expires_at": "2026-07-22T16:09:19.868Z",
+      "attempts": 3,
+      "consumed": 0,
+      "created_at": "2026-07-22T16:04:19.868Z"
+    },
+    {
+      "id": 16,
+      "role": "vendor",
+      "identifier": "lockout.ui.test2@example.com",
+      "otp_hash": "6648b2bef3779521578cc40d83b8d3ecfdf3c0b9bcd4382700b331944cea782a",
+      "expires_at": "2026-07-22T16:09:55.359Z",
+      "attempts": 3,
+      "consumed": 0,
+      "created_at": "2026-07-22T16:04:55.359Z"
+    },
+    {
+      "id": 17,
+      "role": "vendor",
+      "identifier": "curl.lockout.test@example.com",
+      "otp_hash": "6120c894ea62e4b41975e7c499dc042dda543aada7c38ce02b493f8e8c0161bf",
+      "expires_at": "2026-07-22T16:10:13.061Z",
+      "attempts": 5,
+      "consumed": 1,
+      "created_at": "2026-07-22T16:05:13.061Z"
+    },
+    {
+      "id": 18,
+      "role": "vendor",
+      "identifier": "proxy.lockout.test@example.com",
+      "otp_hash": "266088b64f1513bd854764e6a27a40b4489d985df84fcf07be0f133b2445ed9f",
+      "expires_at": "2026-07-22T16:10:31.232Z",
+      "attempts": 3,
+      "consumed": 0,
+      "created_at": "2026-07-22T16:05:31.232Z"
+    },
+    {
+      "id": 19,
+      "role": "vendor",
+      "identifier": "delay.lockout.test@example.com",
+      "otp_hash": "fc1bf38b3a62fcbe30a9e682bea1b0f5105d19f8bfc89dfe8f15b2168940bd50",
+      "expires_at": "2026-07-22T16:10:48.636Z",
+      "attempts": 5,
+      "consumed": 1,
+      "created_at": "2026-07-22T16:05:48.636Z"
+    },
+    {
+      "id": 20,
+      "role": "vendor",
+      "identifier": "lockout.ui.test3@example.com",
+      "otp_hash": "a652ddc541d8b011892d4264ddeef29f286e84e202648243351d7aa345a07de2",
+      "expires_at": "2026-07-22T16:11:33.784Z",
+      "attempts": 5,
+      "consumed": 0,
+      "created_at": "2026-07-22T16:06:33.784Z"
+    },
+    {
+      "id": 21,
+      "role": "vendor",
+      "identifier": "lockout.ui.test4@example.com",
+      "otp_hash": "075c2cd7c2357a335ff2359717882a3bd8a55fc2baa63c76a709079d35e7cf84",
+      "expires_at": "2026-07-22T16:12:21.635Z",
+      "attempts": 5,
+      "consumed": 1,
+      "created_at": "2026-07-22T16:07:21.635Z"
+    },
+    {
+      "id": 22,
+      "role": "vendor",
+      "identifier": "9304191911",
+      "otp_hash": "a99f736b36033765f0e96e26c4e6411f883ff1f590646bb7b94e9afdbf075595",
+      "expires_at": "2026-07-22T16:14:35.989Z",
+      "attempts": 0,
+      "consumed": 1,
+      "created_at": "2026-07-22T16:09:35.989Z"
+    },
+    {
+      "id": 23,
+      "role": "vendor",
+      "identifier": "9304191911",
+      "otp_hash": "bcfb6dd47fe27e601e67dfea8df80f540f6d82961859e7b31720b770e60524a3",
+      "expires_at": "2026-07-22T16:15:16.394Z",
+      "attempts": 0,
+      "consumed": 1,
+      "created_at": "2026-07-22T16:10:16.394Z"
+    },
+    {
+      "id": 24,
+      "role": "vendor",
+      "identifier": "9304191911",
+      "otp_hash": "9f238bce7673ea96c54e005c8de6f3147bf0187ca7ebd75a9a30270513f5996e",
+      "expires_at": "2026-07-22T16:15:50.365Z",
+      "attempts": 1,
+      "consumed": 0,
+      "created_at": "2026-07-22T16:10:50.365Z"
+    },
+    {
+      "id": 25,
+      "role": "vendor",
+      "identifier": "9304191911",
+      "otp_hash": "e0795aed3532a5fd2171d6ab8a103579bee55f4fdfb4002e86b8cb7736fdf8a0",
+      "expires_at": "2026-07-22T16:54:46.999Z",
+      "attempts": 0,
+      "consumed": 1,
+      "created_at": "2026-07-22T16:49:47.001Z"
+    },
+    {
+      "id": 26,
+      "role": "vendor",
+      "identifier": "9304191911",
+      "otp_hash": "3d38af1be4b8ae5db9e12c69bbe9d780e0fae53ca0ed92710b1c986fd1264b87",
+      "expires_at": "2026-07-22T16:55:31.051Z",
+      "attempts": 1,
+      "consumed": 0,
+      "created_at": "2026-07-22T16:50:31.051Z"
+    },
+    {
+      "id": 27,
+      "role": "vendor",
+      "identifier": "9304191911",
+      "otp_hash": "765f87b4cb60e26c0c916610692b8c7fcc22e411ec09ad1dc7d83fa882d890e4",
+      "expires_at": "2026-07-22T16:58:49.486Z",
+      "attempts": 0,
+      "consumed": 0,
+      "created_at": "2026-07-22T16:53:49.486Z"
+    }
+  ],
+  "refreshTokens": [
+    {
+      "id": 1,
+      "account_id": 1,
+      "jti": "de9e95af5bf755467e1cf1478a5c66f6",
+      "token_hash": "ef7ae5f3da64a8ce9a9d4d910fa371360ac4e7cb5dc248c5266e3c4fb49782aa",
+      "expires_at": "2026-07-29T15:35:43.000Z",
+      "revoked": 0,
+      "created_at": "2026-07-22T15:35:43.217Z"
+    },
+    {
+      "id": 2,
+      "account_id": 1,
+      "jti": "7cc242595b3c0ecac6e3be1e50799b3a",
+      "token_hash": "d430e4d68ff7301f63248de51c1700a4ec669db325012845b3669c7998a29ff7",
+      "expires_at": "2026-07-29T15:37:26.000Z",
+      "revoked": 0,
+      "created_at": "2026-07-22T15:37:26.708Z"
+    },
+    {
+      "id": 3,
+      "account_id": 2,
+      "jti": "16a202df2d0e86b6d2e9aebdf94fd8ec",
+      "token_hash": "caef86596657a334ada628275f63c703ed01c650f815519131cfeb64b25d3ef0",
+      "expires_at": "2026-07-29T15:56:15.000Z",
+      "revoked": 0,
+      "created_at": "2026-07-22T15:56:15.969Z"
+    },
+    {
+      "id": 4,
+      "account_id": 3,
+      "jti": "c49e25367dc6c0505fc64b0eba29c358",
+      "token_hash": "fd3900b603e36b4d8125e1318ca8b9b3cbe011587f367c96d0fc61ffa8a79bf1",
+      "expires_at": "2026-07-29T15:56:48.000Z",
+      "revoked": 0,
+      "created_at": "2026-07-22T15:56:48.376Z"
+    },
+    {
+      "id": 5,
+      "account_id": 4,
+      "jti": "1e7b659d24956621f72525b28e19a00f",
+      "token_hash": "c67f31efbe47668c1d23278e7fa7baba9bef7b8ae7201bbf6960c6e80b49ae4b",
+      "expires_at": "2026-07-29T16:03:26.000Z",
+      "revoked": 0,
+      "created_at": "2026-07-22T16:03:26.315Z"
+    },
+    {
+      "id": 6,
+      "account_id": 5,
+      "jti": "3e922df242f0fcabb9da521e870bf4c0",
+      "token_hash": "73c949a7e1d55c5ad1adb0433cf068b54c35793bc18f36ba5deed334f1084c0a",
+      "expires_at": "2026-07-29T16:09:53.000Z",
+      "revoked": 0,
+      "created_at": "2026-07-22T16:09:53.838Z"
+    },
+    {
+      "id": 7,
+      "account_id": 5,
+      "jti": "5d4a716cb79b480207542beeb663e8a1",
+      "token_hash": "0c3fd6077ebaebd0ad1d5c9d61a175ffcff8ffa21a5d287ba2c06e943ffab976",
+      "expires_at": "2026-07-29T16:10:28.000Z",
+      "revoked": 0,
+      "created_at": "2026-07-22T16:10:28.182Z"
+    },
+    {
+      "id": 8,
+      "account_id": 5,
+      "jti": "2f3f1cb390e04330a7d7e8a33bcffa8e",
+      "token_hash": "2f324f5ccd18ecfb7b4d12eebb68367d236968f3ee21f9e984667784f77e84bc",
+      "expires_at": "2026-07-29T16:50:00.000Z",
+      "revoked": 0,
+      "created_at": "2026-07-22T16:50:00.080Z"
+    }
+  ]
+}
