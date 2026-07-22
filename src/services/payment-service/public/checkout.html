@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Maako - Razorpay Standard Checkout Demo</title>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 480px; margin: 48px auto; padding: 0 16px; color: #0f172a; }
+  h1 { font-size: 1.25rem; }
+  .item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+  .total { display: flex; justify-content: space-between; font-weight: 600; padding-top: 12px; }
+  button { margin-top: 20px; width: 100%; padding: 12px; font-size: 1rem; background: #0f172a; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  #status { margin-top: 16px; font-size: 0.9rem; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+  <h1>Maako - Demo Checkout (Razorpay Standard Checkout)</h1>
+  <div id="items"></div>
+  <div class="total"><span>Total</span><span id="total"></span></div>
+  <button id="pay-btn">Pay Now</button>
+  <div id="status"></div>
+
+<script>
+  // This demo talks to the payment-service through the api-gateway, exactly
+  // like a real frontend would. Change GATEWAY_URL if the gateway runs elsewhere.
+  const GATEWAY_URL = "http://localhost:3000";
+  const CART = [{ id: "item_bgauss_c12i", quantity: 1 }];
+
+  const statusEl = document.getElementById("status");
+  const payBtn = document.getElementById("pay-btn");
+
+  function rupees(paiseOrRupees) {
+    return `₹${paiseOrRupees.toLocaleString("en-IN")}`;
+  }
+
+  async function renderCart() {
+    const res = await fetch(`${GATEWAY_URL}/api/payments/items`);
+    const { items: catalog } = await res.json();
+    const itemsEl = document.getElementById("items");
+    let total = 0;
+
+    CART.forEach((line) => {
+      const item = catalog.find((c) => c.id === line.id);
+      if (!item) return;
+      total += item.price * line.quantity;
+      const row = document.createElement("div");
+      row.className = "item";
+      row.innerHTML = `<span>${item.name} x${line.quantity}</span><span>${rupees(item.price * line.quantity)}</span>`;
+      itemsEl.appendChild(row);
+    });
+
+    document.getElementById("total").textContent = rupees(total);
+  }
+
+  async function startPayment() {
+    payBtn.disabled = true;
+    statusEl.textContent = "Creating order...";
+
+    try {
+      const createRes = await fetch(`${GATEWAY_URL}/api/payments/create-order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: CART }),
+      });
+      const order = await createRes.json();
+      if (!createRes.ok) throw new Error(order.error || "Failed to create order");
+
+      const options = {
+        key: order.key_id,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Maako",
+        description: "Order payment",
+        order_id: order.order_id,
+        handler: async function (response) {
+          // Logged so you can copy these three values into Insomnia and call
+          // POST /api/payments/verify-payment yourself instead of relying on this page.
+          console.log("Razorpay checkout response (copy into Insomnia if testing manually):", {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          });
+          statusEl.textContent = "Payment captured, verifying signature...";
+          try {
+            const verifyRes = await fetch(`${GATEWAY_URL}/api/payments/verify-payment`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok && verifyData.success) {
+              statusEl.textContent =
+                `Payment verified. Order placed!\norder_id: ${response.razorpay_order_id}\npayment_id: ${response.razorpay_payment_id}\nsignature: ${response.razorpay_signature}`;
+            } else {
+              statusEl.textContent = `Verification failed: ${verifyData.error || "unknown error"}`;
+            }
+          } finally {
+            payBtn.disabled = false;
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            statusEl.textContent = "Payment cancelled — checkout modal dismissed.";
+            payBtn.disabled = false;
+          },
+        },
+        theme: { color: "#0f172a" },
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.on("payment.failed", function (response) {
+        statusEl.textContent = `Payment failed: ${response.error.description}`;
+        payBtn.disabled = false;
+      });
+      rzp.open();
+    } catch (error) {
+      statusEl.textContent = `Error: ${error.message}`;
+      payBtn.disabled = false;
+    }
+  }
+
+  payBtn.addEventListener("click", startPayment);
+  renderCart();
+</script>
+</body>
+</html>
