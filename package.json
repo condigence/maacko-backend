@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "npm run gateway",
+    "start": "node src/api-gateway/index.js",
     "gateway": "nodemon src/api-gateway/index.js",
+    "dev": "nodemon src/api-gateway/index.js",
     "user-service": "nodemon src/services/user-service/index.js",
     "product-service": "nodemon src/services/product-service/index.js",
     "auth-service": "nodemon src/services/auth-service/index.js",

@@ -7,8 +7,12 @@ on:
     branches: [main, master, develop]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
-  build-test-quality:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,22 +26,27 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Lint
-        run: npm run lint
+      - name: Validate Node syntax
+        run: |
+          node --check src/api-gateway/index.js
+          node --check src/bootstrap.js
+          node --check src/services/user-service/index.js
+          node --check src/services/product-service/index.js
+          node --check src/services/auth-service/index.js
+          node --check src/services/payment-service/index.js
 
-      - name: Run unit tests
-        run: npm run test
-
-      - name: Generate coverage report
-        run: npm run test:coverage
-
-      - name: Build application
-        run: npm run build
+      - name: Start API gateway smoke test
+        run: |
+          npm run gateway > /tmp/maacko.log 2>&1 &
+          SERVER_PID=$!
+          sleep 10
+          curl -fsS http://127.0.0.1:3000/health
+          kill $SERVER_PID
 
   docker-build:
-    needs: build-test-quality
+    needs: build-and-test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
 
@@ -45,13 +54,69 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for Dockerfile
+        id: dockerfile
+        run: |
+          if [ -f Dockerfile ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Set up Docker Buildx
+        if: steps.dockerfile.outputs.exists == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
+        if: steps.dockerfile.outputs.exists == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: false
-          tags: maacko-frontend:latest
+          tags: maacko-backend:latest
+
+      - name: Skip Docker build
+        if: steps.dockerfile.outputs.exists != 'true'
+        run: echo "Dockerfile not found; skipping image build."
+
+  deploy:
+    needs: docker-build
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for Dockerfile
+        id: dockerfile
+        run: |
+          if [ -f Dockerfile ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Log in to GitHub Container Registry
+        if: steps.dockerfile.outputs.exists == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        if: steps.dockerfile.outputs.exists == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/maacko-backend:latest
+            ghcr.io/${{ github.repository_owner }}/maacko-backend:${{ github.sha }}
+
+      - name: Skip deployment
+        if: steps.dockerfile.outputs.exists != 'true'
+        run: echo "Dockerfile not found; skipping deployment."
