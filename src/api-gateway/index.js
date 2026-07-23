@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 
 const app = express();
@@ -5,13 +6,19 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 const USER_SERVICE_URL = process.env.USER_SERVICE_URL || "http://127.0.0.1:3001";
 const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || "http://127.0.0.1:3002";
+const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL || "http://127.0.0.1:3003";
+const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || "http://127.0.0.1:3004";
 
 app.get("/health", (_req, res) => {
   res.json({ service: "api-gateway", status: "ok" });
 });
 
 async function proxyRequest(req, res, targetBaseUrl, serviceName) {
-  const targetPath = req.originalUrl.replace(/^\/api\/users/, "/users").replace(/^\/api\/products/, "/products");
+  const targetPath = req.originalUrl
+    .replace(/^\/api\/users/, "/users")
+    .replace(/^\/api\/products/, "/products")
+    .replace(/^\/api\/auth/, "/auth")
+    .replace(/^\/api\/payments/, "/payments");
   const targetUrl = new URL(targetPath, targetBaseUrl);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 3000);
@@ -54,6 +61,8 @@ async function proxyRequest(req, res, targetBaseUrl, serviceName) {
 
 app.use("/api/users", (req, res) => proxyRequest(req, res, USER_SERVICE_URL, "User service"));
 app.use("/api/products", (req, res) => proxyRequest(req, res, PRODUCT_SERVICE_URL, "Product service"));
+app.use("/api/auth", (req, res) => proxyRequest(req, res, AUTH_SERVICE_URL, "Auth service"));
+app.use("/api/payments", (req, res) => proxyRequest(req, res, PAYMENT_SERVICE_URL, "Payment service"));
 
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {

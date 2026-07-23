@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { spawn } from 'node:child_process';
 import process from 'node:process';
 
@@ -6,6 +7,8 @@ const services = [
   { name: 'api-gateway', script: 'src/api-gateway/index.js', port: process.env.PORT || '3000' },
   { name: 'user', script: 'src/services/user-service/index.js', port: process.env.USER_SERVICE_PORT || '3001' },
   { name: 'product', script: 'src/services/product-service/index.js', port: process.env.PRODUCT_SERVICE_PORT || '3002' },
+  { name: 'auth', script: 'src/services/auth-service/index.js', port: process.env.AUTH_SERVICE_PORT || '3003' },
+  { name: 'payment', script: 'src/services/payment-service/index.js', port: process.env.PAYMENT_SERVICE_PORT || '3004' },
 ];
 
 const children = [];

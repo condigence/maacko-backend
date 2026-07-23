@@ -1,12 +1,14 @@
+import "dotenv/config";
 import express from "express";
 import { connectMongo, disconnectMongo } from "../../db/mongo.js";
 import Product from "../../models/Product.js";
 import { setupSwagger } from "../../../swagger-docs/product/product-swagger.js";
+import { requireAuth, requireRole } from "../../middleware/auth.js";
 
 const app = express();
 app.use(express.json());
 setupSwagger(app);
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PRODUCT_SERVICE_PORT || process.env.PORT || 3002;
 const gatewayUrl = process.env.GATEWAY_URL || "http://127.0.0.1:3000";
 
 async function ensureGateway() {
@@ -52,7 +54,7 @@ app.get("/products/:id", async (req, res) => {
   }
 });
 
-app.post("/products", async (req, res) => {
+app.post("/products", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
   try {
     const { name, price } = req.body;
 
@@ -68,7 +70,7 @@ app.post("/products", async (req, res) => {
   }
 });
 
-app.put("/products/:id", async (req, res) => {
+app.put("/products/:id", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
   try {
     const update = {};
     if (req.body.name !== undefined) update.name = req.body.name;
@@ -96,7 +98,7 @@ app.put("/products/:id", async (req, res) => {
   }
 });
 
-app.delete("/products/:id", async (req, res) => {
+app.delete("/products/:id", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) {

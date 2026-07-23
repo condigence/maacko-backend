@@ -6,13 +6,18 @@
     "start": "npm run gateway",
     "gateway": "nodemon src/api-gateway/index.js",
     "user-service": "nodemon src/services/user-service/index.js",
-    "product-service": "nodemon src/services/product-service/index.js"
+    "product-service": "nodemon src/services/product-service/index.js",
+    "auth-service": "nodemon src/services/auth-service/index.js",
+    "payment-service": "nodemon src/services/payment-service/index.js"
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.7.4",
     "mysql2": "^3.23.0",
     "nodemon": "^3.1.14",
+    "razorpay": "^2.9.8",
     "swagger-jsdoc": "^6.0.0",
     "swagger-ui-express": "^5.0.0"
   }
