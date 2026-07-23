@@ -4,7 +4,6 @@
 
 # Default reviewer for all changes to develop and feature branches
 develop/ @copilot
-feature/ @copilot
 
 # Default reviewers for all files
 * @copilot
