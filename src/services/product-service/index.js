@@ -5,6 +5,9 @@ import Product from "../../models/Product.js";
 import { setupSwagger } from "../../../swagger-docs/product/product-swagger.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 
+const require = createRequire(import.meta.url);
+let mockProducts = require("./data/mockProduct.json")
+
 const app = express();
 app.use(express.json());
 setupSwagger(app);
@@ -21,11 +24,31 @@ async function ensureGateway() {
   }
 }
 
+// Delegates mock/live status directly to connectMongo()
+async function tryMongo() {
+  try {
+    const conn = await connectMongo();
+    return Boolean(conn);
+  } catch {
+    return false;
+  }
+}
+
+const isMongoConnected = await tryMongo(); // checking for connection with MongoDB
+
 app.get("/health", (_req, res) => {
   res.json({ service: "product-service", status: "ok" });
 });
 
 app.get("/products", async (_req, res) => {
+//talking to mock product json
+  if (!isMongoConnected) {
+    return res.json({
+      service: "product-service",
+      source: "mock",
+      products: mockProducts,
+    });
+  }
   try {
     const products = await Product.find({});
     // const productData = products.map((product) => {
@@ -40,6 +63,18 @@ app.get("/products", async (_req, res) => {
 });
 
 app.get("/products/:id", async (req, res) => {
+  
+//talking to mockProduct
+  if (!isMongoConnected) {
+    const product = mockProducts.find(
+      (p) => (p._id || p.id) === req.params.id
+    );
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    return res.json({ service: "product-service", source: "mock", product });
+  }
+
   try {
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -55,6 +90,24 @@ app.get("/products/:id", async (req, res) => {
 });
 
 app.post("/products", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
+
+    if (!isMongoConnected) {
+      const stubProduct = {
+        _id: `mock_prod_${Date.now()}`,
+        name,
+        price: price || 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      mockProducts.push(stubProduct);
+
+      return res.status(201).json({
+        service: "product-service",
+        source: "mock",
+        product: stubProduct,
+      });
+    }
+
   try {
     const { name, price } = req.body;
 
@@ -71,6 +124,28 @@ app.post("/products", requireAuth, requireRole("vendor", "admin"), async (req, r
 });
 
 app.put("/products/:id", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
+
+  if (!isMongoConnected) {
+      const productIndex = mockProducts.findIndex(
+        (p) => (p._id || p.id) === req.params.id
+      );
+
+      if (productIndex === -1) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      if (name !== undefined) mockProducts[productIndex].name = name;
+      if (price !== undefined) mockProducts[productIndex].price = price;
+      mockProducts[productIndex].updatedAt = new Date().toISOString();
+
+      return res.json({
+        service: "product-service",
+        source: "mock",
+        message: "Product updated successfully",
+        product: mockProducts[productIndex],
+      });
+    }
+
   try {
     const update = {};
     if (req.body.name !== undefined) update.name = req.body.name;
@@ -99,6 +174,24 @@ app.put("/products/:id", requireAuth, requireRole("vendor", "admin"), async (req
 });
 
 app.delete("/products/:id", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
+
+  if (!isMongoConnected) {
+      const initialLength = mockProducts.length;
+      mockProducts = mockProducts.filter(
+        (p) => (p._id || p.id) !== req.params.id
+      );
+
+      if (mockProducts.length === initialLength) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      return res.json({
+        service: "product-service",
+        source: "mock",
+        message: "Product deleted successfully",
+      });
+    }
+    
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) {
@@ -112,14 +205,10 @@ app.delete("/products/:id", requireAuth, requireRole("vendor", "admin"), async (
   }
 });
 
-await ensureGateway();
-await connectMongo();
-
-
-
-app.listen(PORT, () => {
+await ensureGateway().then(() => {app.listen(PORT, () => {
   console.log(`Product service running on port ${PORT}`);
 });
+})
 
 process.on("SIGTERM", async () => {
   await disconnectMongo();
