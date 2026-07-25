@@ -1,8 +1,12 @@
 import "dotenv/config";
 import express from "express";
+import { createRequire } from "node:module";
 import { connectMySQL, disconnectMySQL } from "../../db/mysql.js";
 import { setupSwagger } from "../../../swagger-docs/user/user-swagger.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
+
+const require = createRequire(import.meta.url);
+let mockUsers = require("./data/mockUser.json");
 
 const app = express();
 app.use(express.json());
@@ -20,13 +24,26 @@ async function ensureGateway() {
   }
 }
 
+// Returns a connected MySQL connection or null (mock mode / connection failure)
+async function tryMySQL() {
+  try {
+    const conn = await connectMySQL();
+    return conn;
+  } catch {
+    return null;
+  }
+}
+
 app.get("/health", (_req, res) => {
   res.json({ service: "user-service", status: "ok" });
 });
 
 app.get("/users", async (_req, res) => {
+  const connection = await tryMySQL();
+  if (!connection) {
+    return res.json({ service: "user-service", source: "mock", users: mockUsers });
+  }
   try {
-    const connection = await connectMySQL();
     const [rows] = await connection.query("SELECT id, name, email FROM users");
     res.json({ service: "user-service", users: rows });
   } catch (error) {
@@ -36,8 +53,13 @@ app.get("/users", async (_req, res) => {
 });
 
 app.get("/users/:id", async (req, res) => {
+  const connection = await tryMySQL();
+  if (!connection) {
+    const user = mockUsers.find((u) => String(u.id) === req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    return res.json({ service: "user-service", source: "mock", user });
+  }
   try {
-    const connection = await connectMySQL();
     const [rows] = await connection.query("SELECT id, name, email FROM users WHERE id = ?", [req.params.id]);
     if (rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
@@ -50,13 +72,23 @@ app.get("/users/:id", async (req, res) => {
 });
 
 app.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
-  try {
-    const { name, email } = req.body;
-    if (!name || !email) {
-      return res.status(400).json({ error: "Name and email are required" });
-    }
+  const { name, email } = req.body;
+  if (!name || !email) {
+    return res.status(400).json({ error: "Name and email are required" });
+  }
 
-    const connection = await connectMySQL();
+  const connection = await tryMySQL();
+  if (!connection) {
+    const stubUser = {
+      id: mockUsers.length ? Math.max(...mockUsers.map((u) => u.id)) + 1 : 1,
+      name,
+      email,
+    };
+    mockUsers.push(stubUser);
+    return res.status(201).json({ service: "user-service", source: "mock", user: stubUser });
+  }
+
+  try {
     const [result] = await connection.query(
       "INSERT INTO users (name, email) VALUES (?, ?)",
       [name, email]
@@ -73,8 +105,27 @@ app.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
 });
 
 app.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const { name, email } = req.body;
+
+  if (name === undefined && email === undefined) {
+    return res.status(400).json({ error: "At least one field is required for update" });
+  }
+
+  const connection = await tryMySQL();
+  if (!connection) {
+    const user = mockUsers.find((u) => String(u.id) === req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (name !== undefined) user.name = name;
+    if (email !== undefined) user.email = email;
+    return res.json({
+      service: "user-service",
+      source: "mock",
+      message: "User updated successfully",
+      user,
+    });
+  }
+
   try {
-    const { name, email } = req.body;
     const fields = [];
     const values = [];
 
@@ -88,12 +139,7 @@ app.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
       values.push(email);
     }
 
-    if (fields.length === 0) {
-      return res.status(400).json({ error: "At least one field is required for update" });
-    }
-
     values.push(req.params.id);
-    const connection = await connectMySQL();
     const [result] = await connection.query(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`, values);
 
     if (result.affectedRows === 0) {
@@ -102,7 +148,7 @@ app.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
 
     // if u want to return user id in the response
    // const updatedUser = { id: Number(req.params.id), ...req.body };
-    
+
 
    // but i dont want to send id in the response as we have alreday in param
     const updatedUser = { ...req.body };
@@ -119,8 +165,17 @@ app.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
 });
 
 app.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  const connection = await tryMySQL();
+  if (!connection) {
+    const initialLength = mockUsers.length;
+    mockUsers = mockUsers.filter((u) => String(u.id) !== req.params.id);
+    if (mockUsers.length === initialLength) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    return res.json({ service: "user-service", source: "mock", message: "User deleted successfully" });
+  }
+
   try {
-    const connection = await connectMySQL();
     const [result] = await connection.query("DELETE FROM users WHERE id = ?", [req.params.id]);
 
     if (result.affectedRows === 0) {
@@ -135,7 +190,6 @@ app.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => 
 });
 
 await ensureGateway();
-await connectMySQL();
 
 app.listen(PORT, () => {
   console.log(`User service running on port ${PORT}`);

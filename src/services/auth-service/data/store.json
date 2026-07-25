@@ -1,7 +1,7 @@
 {
   "nextAccountId": 6,
-  "nextOtpId": 28,
-  "nextRefreshId": 9,
+  "nextOtpId": 29,
+  "nextRefreshId": 10,
   "accounts": [
     {
       "id": 1,
@@ -314,6 +314,16 @@
       "attempts": 0,
       "consumed": 0,
       "created_at": "2026-07-22T16:53:49.486Z"
+    },
+    {
+      "id": 28,
+      "role": "vendor",
+      "identifier": "9876543210",
+      "otp_hash": "f479db54229b9dee48a7345d091748554ebbd5b7f6c6601e485b7d3928f516ae",
+      "expires_at": "2026-07-25T09:20:56.736Z",
+      "attempts": 0,
+      "consumed": 1,
+      "created_at": "2026-07-25T09:15:56.737Z"
     }
   ],
   "refreshTokens": [
@@ -388,6 +398,15 @@
       "expires_at": "2026-07-29T16:50:00.000Z",
       "revoked": 0,
       "created_at": "2026-07-22T16:50:00.080Z"
+    },
+    {
+      "id": 9,
+      "account_id": 1,
+      "jti": "850966d381bc2e370c3ffc60dca41370",
+      "token_hash": "3900ccfc76ff9de23fc6cd0800159e3eaee52554a92099637fdf840371cc6cfb",
+      "expires_at": "2026-08-01T09:16:18.000Z",
+      "revoked": 0,
+      "created_at": "2026-07-25T09:16:18.567Z"
     }
   ]
 }
