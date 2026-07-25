@@ -6,7 +6,7 @@ import { setupSwagger } from "../../../swagger-docs/order/order-swagger.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 
 const require = createRequire(import.meta.url);
-const mockOrders = require("../../db/data/mockOrder.json");
+const mockOrders = require("./data/mockOrder.json");
 
 const app = express();
 app.use(express.json());
