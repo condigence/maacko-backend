@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { createRequire } from "node:module";
 import { connectMySQL, disconnectMySQL } from "../../db/mysql.js";
 import { setupSwagger } from "../../../swagger-docs/user/user-swagger.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
@@ -50,7 +51,6 @@ app.get("/users", async (_req, res) => {
   
 
   try {
-    const connection = await connectMySQL();
     const [rows] = await connection.query("SELECT id, name, email FROM users");
     res.json({ service: "user-service", users: rows });
   } catch (error) {
@@ -118,7 +118,18 @@ app.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
       return res.status(400).json({ error: "Name and email are required" });
     }
 
-    const connection = await connectMySQL();
+  const connection = await tryMySQL();
+  if (!connection) {
+    const stubUser = {
+      id: mockUsers.length ? Math.max(...mockUsers.map((u) => u.id)) + 1 : 1,
+      name,
+      email,
+    };
+    mockUsers.push(stubUser);
+    return res.status(201).json({ service: "user-service", source: "mock", user: stubUser });
+  }
+
+  try {
     const [result] = await connection.query(
       "INSERT INTO users (name, email) VALUES (?, ?)",
       [name, email]
@@ -176,12 +187,7 @@ app.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
       values.push(email);
     }
 
-    if (fields.length === 0) {
-      return res.status(400).json({ error: "At least one field is required for update" });
-    }
-
     values.push(req.params.id);
-    const connection = await connectMySQL();
     const [result] = await connection.query(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`, values);
 
     if (result.affectedRows === 0) {
@@ -190,7 +196,7 @@ app.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
 
     // if u want to return user id in the response
    // const updatedUser = { id: Number(req.params.id), ...req.body };
-    
+
 
    // but i dont want to send id in the response as we have alreday in param
     const updatedUser = { ...req.body };

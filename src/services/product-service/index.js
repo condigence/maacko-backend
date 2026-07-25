@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { createRequire } from "node:module";
 import { connectMongo, disconnectMongo } from "../../db/mongo.js";
 import Product from "../../models/Product.js";
 import { setupSwagger } from "../../../swagger-docs/product/product-swagger.js";
@@ -89,6 +90,11 @@ app.get("/products/:id", async (req, res) => {
 });
 
 app.post("/products", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
+    const { name, price } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "Product name is required" });
+    }
 
     if (!isMongoConnected) {
       const stubProduct = {
@@ -108,12 +114,6 @@ app.post("/products", requireAuth, requireRole("vendor", "admin"), async (req, r
     }
 
   try {
-    const { name, price } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ error: "Product name is required" });
-    }
-
     const product = await Product.create({ name, price: price || 0 });
     res.status(201).json({ service: "product-service", product });
   } catch (error) {
@@ -123,6 +123,11 @@ app.post("/products", requireAuth, requireRole("vendor", "admin"), async (req, r
 });
 
 app.put("/products/:id", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
+  const { name, price } = req.body;
+
+  if (name === undefined && price === undefined) {
+    return res.status(400).json({ error: "At least one field is required for update" });
+  }
 
   if (!isMongoConnected) {
       const productIndex = mockProducts.findIndex(
@@ -147,12 +152,8 @@ app.put("/products/:id", requireAuth, requireRole("vendor", "admin"), async (req
 
   try {
     const update = {};
-    if (req.body.name !== undefined) update.name = req.body.name;
-    if (req.body.price !== undefined) update.price = req.body.price;
-
-    if (Object.keys(update).length === 0) {
-      return res.status(400).json({ error: "At least one field is required for update" });
-    }
+    if (name !== undefined) update.name = name;
+    if (price !== undefined) update.price = price;
 
     const product = await Product.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!product) {
