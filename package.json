@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node src/api-gateway/index.js",
+    "start": "node src/bootstrap.js",
     "gateway": "nodemon src/api-gateway/index.js",
     "dev": "nodemon src/api-gateway/index.js",
     "user-service": "nodemon src/services/user-service/index.js",

@@ -9,7 +9,7 @@
 // export default model('Product', productSchema);
 
 
-import {Schema, model} from 'mongoose';
+import mongoose, {Schema, model} from 'mongoose';
 
 // 1. Variant Schema (Embeds image array, attributes, and inventory/pricing)
 const variantSchema = new Schema({
