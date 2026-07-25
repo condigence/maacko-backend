@@ -48,7 +48,7 @@ app.get("/users", async (_req, res) => {
       users: mockUsersData,
     });
   }
-  
+  let connection = await connectMySQL();
 
   try {
     const [rows] = await connection.query("SELECT id, name, email FROM users");
@@ -85,7 +85,6 @@ app.get("/users/:id", async (req, res) => {
 });
 
 app.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
-
   const { first_name, last_name, email, mobile, role_id } = req.body;
 
   if (!first_name || !email) {
@@ -112,36 +111,30 @@ app.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
       user: stubUser,
     });
   }
-  try {
-    const { name, email } = req.body;
-    if (!name || !email) {
-      return res.status(400).json({ error: "Name and email are required" });
-    }
-
-  const connection = await tryMySQL();
-  if (!connection) {
-    const stubUser = {
-      id: mockUsers.length ? Math.max(...mockUsers.map((u) => u.id)) + 1 : 1,
-      name,
-      email,
-    };
-    mockUsers.push(stubUser);
-    return res.status(201).json({ service: "user-service", source: "mock", user: stubUser });
-  }
 
   try {
+    const connection = await connectMySQL();
     const [result] = await connection.query(
-      "INSERT INTO users (name, email) VALUES (?, ?)",
-      [name, email]
+      "INSERT INTO users (first_name, last_name, email, mobile, role_id) VALUES (?, ?, ?, ?, ?)",
+      [first_name, last_name || "", email, mobile || null, role_id || 1]
     );
 
     res.status(201).json({
       service: "user-service",
-      user: { id: result.insertId, name, email },
+      user: {
+        id: result.insertId,
+        first_name,
+        last_name: last_name || "",
+        email,
+        mobile: mobile || null,
+        role_id: role_id || 1,
+      },
     });
   } catch (error) {
     console.error("MySQL insert failed", error.message);
     res.status(500).json({ error: "Failed to create user in MySQL" });
+  } finally {
+    console.log("User creation attempt completed");
   }
 });
 
