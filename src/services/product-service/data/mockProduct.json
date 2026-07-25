@@ -1,0 +1,38 @@
+[{
+  "product_id": "prod_iphone_16",
+  "product_name": "iPhone 16",
+  "category_id": "6691a0f823e2012d44a2a110",
+  "brand_id": "6691a0f823e2012d44a2a111",
+  "vendor_id": "6691a0f823e2012d44a2a112",
+  "hsn_code": "85171200",
+  "short_description": "Latest Apple flagship with A18 chip",
+  "tags": ["Apple", "Smartphone", "5G", "Flagship"],
+  "variants": [
+    {
+      "variant_name": "iPhone 16 (128GB - Black)",
+      "sku": "IP16-128-BLK",
+      "storage": "128GB",
+      "color": "Black",
+      "price": 79900,
+      "selling_price": 74900,
+      "stock": 50,
+      "images": [
+        { "image_url": "https://cdn.example.com/iphone16-black.jpg", "primary_image": true }
+      ]
+    },
+    {
+      "variant_name": "iPhone 16 (256GB - Black)",
+      "sku": "IP16-256-BLK",
+      "storage": "256GB",
+      "color": "Black",
+      "price": 89900,
+      "selling_price": 84900,
+      "stock": 30,
+      "images": [
+        { "image_url": "https://cdn.example.com/iphone16-black.jpg", "primary_image": true }
+      ]
+    }
+  ]
+}
+
+]
