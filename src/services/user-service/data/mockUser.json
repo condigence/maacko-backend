@@ -1,0 +1,139 @@
+[
+  {
+    "id": 1,
+    "uuid": "a8f3b2e1-4c9d-4e2a-8f1b-1a2b3c4d5e6f",
+    "first_name": "Soni",
+    "last_name": "Sharma",
+    "mobile": "+919876543210",
+    "email": "soni.sharma@example.com",
+    "password": "$2b$10$e8N0/q511e...hashed_password_here...",
+    "role_id": 1,
+    "role_name": "CUSTOMER",
+    "status": "active",
+    "gender": "female",
+    "dob": "1998-05-14",
+    "profile_image": "https://cdn.example.com/avatars/user_1.png",
+    "is_verified": true,
+    "created_at": "2026-01-10T08:30:00Z",
+    "updated_at": "2026-06-15T10:20:00Z",
+    "addresses": [
+      {
+        "id": 101,
+        "user_id": 1,
+        "type": "Home",
+        "house": "Flat 402, Block B",
+        "street": "Green Valley Apartments",
+        "city": "Faridabad",
+        "district": "Faridabad",
+        "state": "Haryana",
+        "country": "India",
+        "pincode": "121001",
+        "latitude": 28.4089,
+        "longitude": 77.3178,
+        "default_address": true
+      },
+      {
+        "id": 102,
+        "user_id": 1,
+        "type": "Work",
+        "house": "Plot 12, Tower A",
+        "street": "Cyber Park, Sector 62",
+        "city": "Noida",
+        "district": "Gautam Buddha Nagar",
+        "state": "Uttar Pradesh",
+        "country": "India",
+        "pincode": "201301",
+        "latitude": 28.627,
+        "longitude": 77.3726,
+        "default_address": false
+      }
+    ],
+    "devices": [
+      {
+        "id": 201,
+        "device_id": "iPhone15Pro_3A89F",
+        "user_id": 1,
+        "device_token": "fcm_token_xyz987654321_ios",
+        "os": "iOS 19.1",
+        "app_version": "2.4.0",
+        "last_login": "2026-07-22T08:15:00Z"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "uuid": "c2d4e6f8-0a1b-2c3d-4e5f-6a7b8c9d0e1f",
+    "first_name": "Rahul",
+    "last_name": "Verma",
+    "mobile": "+919811223344",
+    "email": "rahul.vendor@maacko.com",
+    "password": "$2b$10$e8N0/q511e...hashed_password_here...",
+    "role_id": 2,
+    "role_name": "VENDOR",
+    "status": "active",
+    "gender": "male",
+    "dob": "1992-11-20",
+    "profile_image": "https://cdn.example.com/avatars/user_2.png",
+    "is_verified": true,
+    "created_at": "2025-11-01T12:00:00Z",
+    "updated_at": "2026-07-01T09:45:00Z",
+    "addresses": [
+      {
+        "id": 103,
+        "user_id": 2,
+        "type": "Other",
+        "house": "Shop No. 15",
+        "street": "Electronics Market",
+        "city": "New Delhi",
+        "district": "Central Delhi",
+        "state": "Delhi",
+        "country": "India",
+        "pincode": "110006",
+        "latitude": 28.6505,
+        "longitude": 77.2303,
+        "default_address": true
+      }
+    ],
+    "devices": [
+      {
+        "id": 202,
+        "device_id": "Pixel8Pro_98B22",
+        "user_id": 2,
+        "device_token": "fcm_token_abc123456789_android",
+        "os": "Android 16",
+        "app_version": "2.4.0",
+        "last_login": "2026-07-21T18:30:00Z"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "uuid": "e5f6a7b8-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
+    "first_name": "Admin",
+    "last_name": "User",
+    "mobile": "+919999900000",
+    "email": "admin@maacko.com",
+    "password": "$2b$10$e8N0/q511e...hashed_password_here...",
+    "role_id": 4,
+    "role_name": "SUPER_ADMIN",
+    "status": "active",
+    "gender": "other",
+    "dob": null,
+    "profile_image": null,
+    "is_verified": true,
+    "created_at": "2025-10-01T00:00:00Z",
+    "updated_at": "2026-07-22T05:00:00Z",
+    "addresses": [],
+    "devices": [
+      {
+        "id": 203,
+        "device_id": "MacBookPro_Web_Client",
+        "user_id": 3,
+        "device_token": null,
+        "os": "macOS Sequoia",
+        "app_version": "Web Admin 1.0",
+        "last_login": "2026-07-22T11:00:00Z"
+      }
+    ]
+  }
+]
