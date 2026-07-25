@@ -5,8 +5,7 @@ import Product from "../../models/Product.js";
 import { setupSwagger } from "../../../swagger-docs/product/product-swagger.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 
-const require = createRequire(import.meta.url);
-let mockProducts = require("./data/mockProduct.json")
+import mockProducts from "./data/mockProduct.json" assert { type : "JSON"};
 
 const app = express();
 app.use(express.json());
