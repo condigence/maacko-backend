@@ -14,16 +14,15 @@ const options = {
       version: "1.0.0",
       description: "Swagger documentation for the user service",
     },
-    servers: [{ url: "http://localhost:3001" }],
+    servers: [{ url: "/api/users" }],
   },
   apis: [path.join(__dirname, "user-swagger.js")],
 };
 
 export const swaggerSpec = swaggerJSDoc(options);
 
-export function setupSwagger(app) {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.use("/users/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+export function setupSwagger(router) {
+  router.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
 
 /**
@@ -34,7 +33,7 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: Service is healthy
- * /users:
+ * /:
  *   get:
  *     summary: Get all users
  *     responses:
@@ -56,7 +55,7 @@ export function setupSwagger(app) {
  *     responses:
  *       201:
  *         description: User created
- * /users/{id}:
+ * /{id}:
  *   get:
  *     summary: Get user by id
  *     parameters:

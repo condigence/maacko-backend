@@ -4,12 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/bootstrap.js",
-    "gateway": "nodemon src/api-gateway/index.js",
-    "dev": "nodemon src/api-gateway/index.js",
-    "user-service": "nodemon src/services/user-service/index.js",
-    "product-service": "nodemon src/services/product-service/index.js",
-    "auth-service": "nodemon src/services/auth-service/index.js",
-    "payment-service": "nodemon src/services/payment-service/index.js"
+    "dev": "nodemon src/bootstrap.js"
   },
   "dependencies": {
     "dotenv": "^17.2.3",
