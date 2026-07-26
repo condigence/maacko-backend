@@ -14,16 +14,15 @@ const options = {
       version: "1.0.0",
       description: "Swagger documentation for the product service",
     },
-    servers: [{ url: "http://localhost:3002" }],
+    servers: [{ url: "/api/products" }],
   },
   apis: [path.join(__dirname, "product-swagger.js")],
 };
 
 export const swaggerSpec = swaggerJSDoc(options);
 
-export function setupSwagger(app) {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.use("/products/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+export function setupSwagger(router) {
+  router.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
 
 /**
@@ -34,7 +33,7 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: Service is healthy
- * /products:
+ * /:
  *   get:
  *     summary: Get all products
  *     responses:
@@ -56,7 +55,7 @@ export function setupSwagger(app) {
  *     responses:
  *       201:
  *         description: Product created
- * /products/{id}:
+ * /{id}:
  *   get:
  *     summary: Get product by id
  *     parameters:

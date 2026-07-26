@@ -14,16 +14,15 @@ const options = {
       version: "1.0.0",
       description: "Swagger documentation for the order service",
     },
-    servers: [{ url: "http://localhost:3005" }],
+    servers: [{ url: "/api/orders" }],
   },
   apis: [path.join(__dirname, "order-swagger.js")],
 };
 
 export const swaggerSpec = swaggerJSDoc(options);
 
-export function setupSwagger(app) {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.use("/orders/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+export function setupSwagger(router) {
+  router.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
 
 /**
@@ -35,7 +34,7 @@ export function setupSwagger(app) {
  *       200:
  *         description: Service is healthy
  *
- * /orders:
+ * /:
  *   get:
  *     summary: Get all orders (admin only)
  *     security:
@@ -72,7 +71,7 @@ export function setupSwagger(app) {
  *       400:
  *         description: Validation error
  *
- * /orders/{id}:
+ * /{id}:
  *   get:
  *     summary: Get order by ID
  *     security:
@@ -89,7 +88,7 @@ export function setupSwagger(app) {
  *       404:
  *         description: Order not found
  *
- * /orders/{id}/status:
+ * /{id}/status:
  *   put:
  *     summary: Update order status (admin/vendor)
  *     security:

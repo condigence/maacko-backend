@@ -1,7 +1,7 @@
 {
-  "nextAccountId": 6,
-  "nextOtpId": 29,
-  "nextRefreshId": 10,
+  "nextAccountId": 7,
+  "nextOtpId": 30,
+  "nextRefreshId": 12,
   "accounts": [
     {
       "id": 1,
@@ -42,6 +42,14 @@
       "name": null,
       "is_verified": 1,
       "created_at": "2026-07-22T16:09:53.826Z"
+    },
+    {
+      "id": 6,
+      "role": "customer",
+      "identifier": "test@example.com",
+      "name": null,
+      "is_verified": 1,
+      "created_at": "2026-07-26T17:06:49.996Z"
     }
   ],
   "otpCodes": [
@@ -324,6 +332,16 @@
       "attempts": 0,
       "consumed": 1,
       "created_at": "2026-07-25T09:15:56.737Z"
+    },
+    {
+      "id": 29,
+      "role": "customer",
+      "identifier": "test@example.com",
+      "otp_hash": "6a4d3d7c26a8864cfaf3aeff249cebb493d19c06c9b13e82dcd37fb98c56edee",
+      "expires_at": "2026-07-26T17:11:20.522Z",
+      "attempts": 0,
+      "consumed": 1,
+      "created_at": "2026-07-26T17:06:20.522Z"
     }
   ],
   "refreshTokens": [
@@ -407,6 +425,24 @@
       "expires_at": "2026-08-01T09:16:18.000Z",
       "revoked": 0,
       "created_at": "2026-07-25T09:16:18.567Z"
+    },
+    {
+      "id": 10,
+      "account_id": 6,
+      "jti": "b4849b81a9e2144f9c451443742a5264",
+      "token_hash": "aace963edbcd274724463fdd48b5420d65b1c9d0d5ef7c8bf9e66834197a6141",
+      "expires_at": "2026-08-02T17:06:50.000Z",
+      "revoked": 1,
+      "created_at": "2026-07-26T17:06:50.010Z"
+    },
+    {
+      "id": 11,
+      "account_id": 6,
+      "jti": "907c2565557a74cb27f25a30577e08ac",
+      "token_hash": "860becdf2310ef61c314d0da54d6d32b39081969fd8c666a0ee876fa7b59ce3e",
+      "expires_at": "2026-08-02T17:07:27.000Z",
+      "revoked": 0,
+      "created_at": "2026-07-26T17:07:27.638Z"
     }
   ]
 }

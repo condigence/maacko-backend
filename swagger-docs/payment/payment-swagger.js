@@ -14,16 +14,15 @@ const options = {
       version: "1.0.0",
       description: "Swagger documentation for the payment service (Razorpay Standard Checkout)",
     },
-    servers: [{ url: "http://localhost:3004" }],
+    servers: [{ url: "/api/payments" }],
   },
   apis: [path.join(__dirname, "payment-swagger.js")],
 };
 
 export const swaggerSpec = swaggerJSDoc(options);
 
-export function setupSwagger(app) {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.use("/payments/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+export function setupSwagger(router) {
+  router.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
 
 /**
@@ -34,13 +33,13 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: Service is healthy
- * /payments/items:
+ * /items:
  *   get:
  *     summary: List the mock item catalog (id, name, price in INR)
  *     responses:
  *       200:
  *         description: Item catalog
- * /payments/create-order:
+ * /create-order:
  *   post:
  *     summary: Create a Razorpay order for the given items
  *     requestBody:
@@ -70,7 +69,7 @@ export function setupSwagger(app) {
  *         description: Razorpay authentication failed
  *       500:
  *         description: Razorpay API error
- * /payments/verify-payment:
+ * /verify-payment:
  *   post:
  *     summary: Verify a Razorpay Standard Checkout payment signature and mark the order paid
  *     requestBody:
@@ -93,13 +92,13 @@ export function setupSwagger(app) {
  *         description: Missing fields or signature mismatch
  *       404:
  *         description: Order not found
- * /payments/orders:
+ * /orders:
  *   get:
  *     summary: List all orders recorded by the payment service
  *     responses:
  *       200:
  *         description: List of orders
- * /payments/orders/{orderId}:
+ * /orders/{orderId}:
  *   get:
  *     summary: Get an order by Razorpay order id
  *     parameters:

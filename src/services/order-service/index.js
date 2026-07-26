@@ -1,29 +1,14 @@
-import "dotenv/config";
-import express from "express";
+import { Router } from "express";
 import { createRequire } from "node:module";
 import { connectMySQL } from "../../db/mysql.js";
 import { setupSwagger } from "../../../swagger-docs/order/order-swagger.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 
 const require = createRequire(import.meta.url);
-const mockOrders = require("./data/mockOrder.json");
+const mockOrders = require("./data/mockOrder.json").orders;
 
-const app = express();
-app.use(express.json());
-setupSwagger(app);
-
-const PORT = process.env.ORDER_SERVICE_PORT || process.env.PORT || 3005;
-const gatewayUrl = process.env.GATEWAY_URL || "http://127.0.0.1:3000";
-
-async function ensureGateway() {
-  try {
-    const response = await fetch(`${gatewayUrl}/health`);
-    if (!response.ok) throw new Error("gateway unhealthy");
-  } catch (error) {
-    console.error("Gateway is not available. Order service will exit.");
-    process.exit(1);
-  }
-}
+export const orderRouter = Router();
+setupSwagger(orderRouter);
 
 // Returns a connected MySQL connection or null (mock mode / connection failure)
 async function tryMySQL() {
@@ -35,12 +20,12 @@ async function tryMySQL() {
   }
 }
 
-app.get("/health", (_req, res) => {
+orderRouter.get("/health", (_req, res) => {
   res.json({ service: "order-service", status: "ok" });
 });
 
 // GET /orders — list all orders (admin only)
-app.get("/orders", requireAuth, requireRole("admin"), async (_req, res) => {
+orderRouter.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
   const conn = await tryMySQL();
   if (!conn) {
     return res.json({
@@ -64,7 +49,7 @@ app.get("/orders", requireAuth, requireRole("admin"), async (_req, res) => {
 });
 
 // GET /orders/:id — get single order
-app.get("/orders/:id", requireAuth, async (req, res) => {
+orderRouter.get("/:id", requireAuth, async (req, res) => {
   const conn = await tryMySQL();
   if (!conn) {
     const order = mockOrders.find((o) => o._id === req.params.id);
@@ -90,7 +75,7 @@ app.get("/orders/:id", requireAuth, async (req, res) => {
 });
 
 // POST /orders — place a new order
-app.post("/orders", requireAuth, async (req, res) => {
+orderRouter.post("/", requireAuth, async (req, res) => {
   const { user_id, items, shipping_address } = req.body;
 
   if (
@@ -171,8 +156,8 @@ app.post("/orders", requireAuth, async (req, res) => {
 });
 
 // PUT /orders/:id/status — update order status (admin/vendor)
-app.put(
-  "/orders/:id/status",
+orderRouter.put(
+  "/:id/status",
   requireAuth,
   requireRole("admin", "vendor"),
   async (req, res) => {
@@ -256,11 +241,3 @@ app.put(
     }
   },
 );
-
-ensureGateway().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Order service running on port ${PORT}`);
-  });
-});
-
-export default app;
