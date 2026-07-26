@@ -1,28 +1,15 @@
-import "dotenv/config";
-import express from "express";
-import { createRequire } from "node:module";
+import { Router } from "express";
 import { connectMongo, disconnectMongo } from "../../db/mongo.js";
 import Product from "../../models/Product.js";
 import { setupSwagger } from "../../../swagger-docs/product/product-swagger.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 
-import mockProducts from "./data/mockProduct.json" assert { type : "JSON"};
+import mockProductsData from "./data/mockProduct.json" with { type: "json" };
 
-const app = express();
-app.use(express.json());
-setupSwagger(app);
-const PORT = process.env.PRODUCT_SERVICE_PORT || process.env.PORT || 3002;
-const gatewayUrl = process.env.GATEWAY_URL || "http://127.0.0.1:3000";
+let mockProducts = [...mockProductsData];
 
-async function ensureGateway() {
-  try {
-    const response = await fetch(`${gatewayUrl}/health`);
-    if (!response.ok) throw new Error("gateway unhealthy");
-  } catch (error) {
-    console.error("Gateway is not available. Product service will exit.");
-    process.exit(1);
-  }
-}
+export const productRouter = Router();
+setupSwagger(productRouter);
 
 // Delegates mock/live status directly to connectMongo()
 async function tryMongo() {
@@ -36,11 +23,11 @@ async function tryMongo() {
 
 const isMongoConnected = await tryMongo(); // checking for connection with MongoDB
 
-app.get("/health", (_req, res) => {
+productRouter.get("/health", (_req, res) => {
   res.json({ service: "product-service", status: "ok" });
 });
 
-app.get("/products", async (_req, res) => {
+productRouter.get("/", async (_req, res) => {
 //talking to mock product json
   if (!isMongoConnected) {
     return res.json({
@@ -62,8 +49,8 @@ app.get("/products", async (_req, res) => {
   }
 });
 
-app.get("/products/:id", async (req, res) => {
-  
+productRouter.get("/:id", async (req, res) => {
+
 //talking to mockProduct
   if (!isMongoConnected) {
     const product = mockProducts.find(
@@ -89,7 +76,7 @@ app.get("/products/:id", async (req, res) => {
   }
 });
 
-app.post("/products", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
+productRouter.post("/", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
     const { name, price } = req.body;
 
     if (!name) {
@@ -122,7 +109,7 @@ app.post("/products", requireAuth, requireRole("vendor", "admin"), async (req, r
   }
 });
 
-app.put("/products/:id", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
+productRouter.put("/:id", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
   const { name, price } = req.body;
 
   if (name === undefined && price === undefined) {
@@ -160,20 +147,16 @@ app.put("/products/:id", requireAuth, requireRole("vendor", "admin"), async (req
       return res.status(404).json({ error: "Product not found" });
     }
 
-
     // Return the updated product in the response exclude _id and __v fields
     const { _id, __v, ...productData } = product.toObject();
     res.json({ service: "product-service", message: "Product updated successfully", product: productData });
-    // res.json({ service: "product-service", message: "Product updated successfully", product });
-  
-    res.json({ service: "product-service", message: "Product updated successfully", product });
   } catch (error) {
     console.error("MongoDB update failed", error.message);
     res.status(500).json({ error: "Failed to update product in MongoDB" });
   }
 });
 
-app.delete("/products/:id", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
+productRouter.delete("/:id", requireAuth, requireRole("vendor", "admin"), async (req, res) => {
 
   if (!isMongoConnected) {
       const initialLength = mockProducts.length;
@@ -191,7 +174,7 @@ app.delete("/products/:id", requireAuth, requireRole("vendor", "admin"), async (
         message: "Product deleted successfully",
       });
     }
-    
+
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) {
@@ -205,12 +188,6 @@ app.delete("/products/:id", requireAuth, requireRole("vendor", "admin"), async (
   }
 });
 
-await ensureGateway().then(() => {app.listen(PORT, () => {
-  console.log(`Product service running on port ${PORT}`);
-});
-})
-
-process.on("SIGTERM", async () => {
+export async function shutdownProductService() {
   await disconnectMongo();
-  process.exit(0);
-});
+}

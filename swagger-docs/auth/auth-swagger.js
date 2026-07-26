@@ -14,7 +14,7 @@ const options = {
       version: "1.0.0",
       description: "OTP based login issuing JWT access/refresh tokens, scoped by role via the URL (customer/vendor/master)",
     },
-    servers: [{ url: "http://localhost:3003" }],
+    servers: [{ url: "/api/auth" }],
     components: {
       securitySchemes: {
         bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
@@ -26,9 +26,8 @@ const options = {
 
 export const swaggerSpec = swaggerJSDoc(options);
 
-export function setupSwagger(app) {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.use("/auth/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+export function setupSwagger(router) {
+  router.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
 
 /**
@@ -39,7 +38,7 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: Service is healthy
- * /auth/otp/request:
+ * /otp/request:
  *   post:
  *     summary: Request an OTP for customer login (base URL flow)
  *     requestBody:
@@ -55,7 +54,7 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: OTP generated
- * /auth/otp/verify:
+ * /otp/verify:
  *   post:
  *     summary: Verify OTP and receive access/refresh tokens for a customer
  *     requestBody:
@@ -72,7 +71,7 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: Login successful
- * /auth/vendor/otp/request:
+ * /vendor/otp/request:
  *   post:
  *     summary: Request an OTP for vendor login
  *     requestBody:
@@ -88,7 +87,7 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: OTP generated
- * /auth/vendor/otp/verify:
+ * /vendor/otp/verify:
  *   post:
  *     summary: Verify OTP and receive access/refresh tokens for a vendor
  *     requestBody:
@@ -105,7 +104,7 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: Login successful
- * /auth/master/otp/request:
+ * /master/otp/request:
  *   post:
  *     summary: Request an OTP for master/admin login
  *     requestBody:
@@ -121,7 +120,7 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: OTP generated
- * /auth/master/otp/verify:
+ * /master/otp/verify:
  *   post:
  *     summary: Verify OTP and receive access/refresh tokens for an admin
  *     requestBody:
@@ -138,7 +137,7 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: Login successful
- * /auth/token/refresh:
+ * /token/refresh:
  *   post:
  *     summary: Exchange a refresh token for a new access/refresh token pair (rotates the refresh token)
  *     requestBody:
@@ -153,7 +152,7 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: New token pair issued
- * /auth/logout:
+ * /logout:
  *   post:
  *     summary: Revoke a refresh token
  *     requestBody:
@@ -168,7 +167,7 @@ export function setupSwagger(app) {
  *     responses:
  *       200:
  *         description: Logged out successfully
- * /auth/me:
+ * /me:
  *   get:
  *     summary: Get the authenticated account from the access token
  *     security:

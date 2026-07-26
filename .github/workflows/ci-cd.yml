@@ -30,16 +30,17 @@ jobs:
 
       - name: Validate Node syntax
         run: |
-          node --check src/api-gateway/index.js
+          node --check src/app.js
           node --check src/bootstrap.js
           node --check src/services/user-service/index.js
           node --check src/services/product-service/index.js
           node --check src/services/auth-service/index.js
           node --check src/services/payment-service/index.js
+          node --check src/services/order-service/index.js
 
-      - name: Start API gateway smoke test
+      - name: Start server smoke test
         run: |
-          npm run gateway > /tmp/maacko.log 2>&1 &
+          npm start > /tmp/maacko.log 2>&1 &
           SERVER_PID=$!
           sleep 10
           curl -fsS http://127.0.0.1:3000/health

@@ -1,27 +1,14 @@
-import "dotenv/config";
-import express from "express";
-import { createRequire } from "node:module";
+import { Router } from "express";
 import { connectMySQL, disconnectMySQL } from "../../db/mysql.js";
 import { setupSwagger } from "../../../swagger-docs/user/user-swagger.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 
-import mockUsersData from "./data/mockUser.json" assert { type: "json" };
+import mockUsersFile from "./data/mockUser.json" with { type: "json" };
 
-const app = express();
-app.use(express.json());
-setupSwagger(app);
-const PORT = process.env.USER_SERVICE_PORT || process.env.PORT || 3001;
-const gatewayUrl = process.env.GATEWAY_URL || "http://127.0.0.1:3000";
+let mockUsers = [...mockUsersFile.users];
 
-async function ensureGateway() {
-  try {
-    const response = await fetch(`${gatewayUrl}/health`);
-    if (!response.ok) throw new Error("gateway unhealthy");
-  } catch (error) {
-    console.error("Gateway is not available. User service will exit.");
-    process.exit(1);
-  }
-}
+export const userRouter = Router();
+setupSwagger(userRouter);
 
 // Delegates mock/live status directly to connectMySql()
 async function tryMysql() {
@@ -35,17 +22,17 @@ async function tryMysql() {
 
 const isMySqlConnected = await tryMysql(); // checking for connection with MySql
 
-app.get("/health", (_req, res) => {
+userRouter.get("/health", (_req, res) => {
   res.json({ service: "user-service", status: "ok" });
 });
 
-app.get("/users", async (_req, res) => {
+userRouter.get("/", async (_req, res) => {
   //talking to mock user json
    if (!isMySqlConnected) {
     return res.json({
       service: "user-service",
       source: "mock",
-      users: mockUsersData,
+      users: mockUsers,
     });
   }
   let connection = await connectMySQL();
@@ -59,10 +46,10 @@ app.get("/users", async (_req, res) => {
   }
 });
 
-app.get("/users/:id", async (req, res) => {
+userRouter.get("/:id", async (req, res) => {
   //talking to mockUser
    if (!isMySqlConnected) {
-    const user = mockUsersData.find(
+    const user = mockUsers.find(
       (u) => String(u._id || u.id) === String(req.params.id)
     );
     if (!user) {
@@ -84,7 +71,7 @@ app.get("/users/:id", async (req, res) => {
   }
 });
 
-app.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
+userRouter.post("/", requireAuth, requireRole("admin"), async (req, res) => {
   const { first_name, last_name, email, mobile, role_id } = req.body;
 
   if (!first_name || !email) {
@@ -93,7 +80,7 @@ app.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
 
   if (!isMySqlConnected) {
     const stubUser = {
-      id: mockUsersData.length + 1,
+      id: mockUsers.length + 1,
       uuid: `mock-uuid-${Date.now()}`,
       first_name,
       last_name: last_name || "",
@@ -103,7 +90,7 @@ app.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
       status: "active",
       created_at: new Date().toISOString(),
     };
-    mockUsersData.push(stubUser);
+    mockUsers.push(stubUser);
 
     return res.status(201).json({
       service: "user-service",
@@ -138,12 +125,12 @@ app.post("/users", requireAuth, requireRole("admin"), async (req, res) => {
   }
 });
 
-app.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+userRouter.put("/:id", requireAuth, requireRole("admin"), async (req, res) => {
 
  const { first_name, last_name, email, mobile } = req.body;
 
   if (!isMySqlConnected) {
-    const userIndex = mockUsersData.findIndex(
+    const userIndex = mockUsers.findIndex(
       (u) => String(u._id || u.id) === String(req.params.id)
     );
 
@@ -151,21 +138,22 @@ app.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (first_name !== undefined) mockUsersData[userIndex].first_name = first_name;
-    if (last_name !== undefined) mockUsersData[userIndex].last_name = last_name;
-    if (email !== undefined) mockUsersData[userIndex].email = email;
-    if (mobile !== undefined) mockUsersData[userIndex].mobile = mobile;
-    mockUsersData[userIndex].updated_at = new Date().toISOString();
+    if (first_name !== undefined) mockUsers[userIndex].first_name = first_name;
+    if (last_name !== undefined) mockUsers[userIndex].last_name = last_name;
+    if (email !== undefined) mockUsers[userIndex].email = email;
+    if (mobile !== undefined) mockUsers[userIndex].mobile = mobile;
+    mockUsers[userIndex].updated_at = new Date().toISOString();
 
     return res.json({
       service: "user-service",
       source: "mock",
       message: "User updated successfully",
-      user: mockUsersData[userIndex],
+      user: mockUsers[userIndex],
     });
   }
 
   try {
+    const connection = await connectMySQL();
     const { name, email } = req.body;
     const fields = [];
     const values = [];
@@ -205,15 +193,15 @@ app.put("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
   }
 });
 
-app.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+userRouter.delete("/:id", requireAuth, requireRole("admin"), async (req, res) => {
 
  if (!isMySqlConnected) {
-    const initialLength = mockUsersData.length;
-    mockUsersData = mockUsersData.filter(
+    const initialLength = mockUsers.length;
+    mockUsers = mockUsers.filter(
       (u) => String(u._id || u.id) !== String(req.params.id)
     );
 
-    if (mockUsersData.length === initialLength) {
+    if (mockUsers.length === initialLength) {
       return res.status(404).json({ error: "User not found" });
     }
 
@@ -239,14 +227,6 @@ app.delete("/users/:id", requireAuth, requireRole("admin"), async (req, res) => 
   }
 });
 
-await ensureGateway().then(() => {
-  app.listen(PORT, () => {
-    console.log(`User service running on port ${PORT}`);
-  });
-})
-
-
-process.on("SIGTERM", async () => {
+export async function shutdownUserService() {
   await disconnectMySQL();
-  process.exit(0);
-});
+}
