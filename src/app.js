@@ -9,8 +9,8 @@ import { orderRouter } from "./services/order-service/index.js";
 
 const app = express();
 
-// CORS_ORIGIN accepts a comma-separated list; falls back to common local Vite ports.
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost:5174")
+// CORS_ORIGIN accepts a comma-separated list; falls back to the deployed frontend.
+const allowedOrigins = (process.env.CORS_ORIGIN || "https://maacko-frontend.vercel.app")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
