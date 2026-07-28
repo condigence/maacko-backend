@@ -54,12 +54,20 @@ const variantSchema = new Schema({
 
 // 2. Main Product Schema
 const productSchema = new Schema({
-  // Expressive Product ID (or you can use Mongoose's default _id)
-  product_id: { type: String, required: true, unique: true },
+  // Expressive Product ID (or you can use Mongoose's default _id). Auto-filled
+  // from _id when not supplied, since there's no vendor-facing SKU flow yet.
+  product_id: {
+    type: String,
+    unique: true,
+    default: function () {
+      return this._id.toString();
+    },
+  },
 
-  // Foreign key references to other DB tables (Vendor, Category, Brand, Tax)
-  vendor_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor', required: true },
-  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  // Foreign key references to other DB tables (Vendor, Category, Brand, Tax).
+  // Optional for now - there's no Vendor/Category service in this codebase yet.
+  vendor_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' },
+  category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   brand_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand' },
   tax_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Tax' },
 

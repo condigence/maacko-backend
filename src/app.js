@@ -1,11 +1,19 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { connectMongo } from "./db/mongo.js";
 import { userRouter } from "./services/user-service/index.js";
 import { productRouter } from "./services/product-service/index.js";
 import { authRouter } from "./services/auth-service/index.js";
 import { paymentRouter } from "./services/payment-service/index.js";
 import { orderRouter } from "./services/order-service/index.js";
+
+// Fire-and-forget: Mongoose buffers queries issued before this resolves, so
+// route handlers don't need to wait on it. Works for both the long-running
+// server (bootstrap.js) and the Vercel serverless entrypoint (this file).
+connectMongo().catch((error) => {
+  console.error("MongoDB connection failed:", error.message);
+});
 
 const app = express();
 

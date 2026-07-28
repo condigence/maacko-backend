@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { getState, save } from "./store.js";
+import RefreshToken from "../../models/RefreshToken.js";
 import { getAccountById } from "./db.js";
 import { hashValue, randomId } from "./crypto.js";
 
@@ -28,17 +28,12 @@ async function issueRefreshToken(account) {
   });
 
   const { exp } = jwt.decode(token);
-  const state = getState();
-  state.refreshTokens.push({
-    id: state.nextRefreshId++,
+  await RefreshToken.create({
     account_id: account.id,
     jti,
     token_hash: hashValue(token),
-    expires_at: new Date(exp * 1000).toISOString(),
-    revoked: 0,
-    created_at: new Date().toISOString(),
+    expires_at: new Date(exp * 1000),
   });
-  await save();
 
   return token;
 }
@@ -56,10 +51,9 @@ export async function rotateRefreshToken(oldToken) {
     throw new AuthError(401, "Invalid or expired refresh token");
   }
 
-  const state = getState();
-  const record = state.refreshTokens.find((r) => r.jti === payload.jti && r.account_id === payload.sub);
+  const record = await RefreshToken.findOne({ jti: payload.jti, account_id: payload.sub });
 
-  if (!record || record.revoked || hashValue(oldToken) !== record.token_hash || new Date(record.expires_at) < new Date()) {
+  if (!record || record.revoked || hashValue(oldToken) !== record.token_hash || record.expires_at < new Date()) {
     throw new AuthError(401, "Refresh token is no longer valid. Please log in again.");
   }
 
@@ -68,8 +62,8 @@ export async function rotateRefreshToken(oldToken) {
     throw new AuthError(401, "Account no longer exists");
   }
 
-  record.revoked = 1;
-  await save();
+  record.revoked = true;
+  await record.save();
 
   return issueTokenPair(account);
 }
@@ -82,9 +76,5 @@ export async function revokeRefreshToken(token) {
     return;
   }
 
-  const record = getState().refreshTokens.find((r) => r.jti === payload.jti && r.account_id === payload.sub);
-  if (record) {
-    record.revoked = 1;
-    await save();
-  }
+  await RefreshToken.updateOne({ jti: payload.jti, account_id: payload.sub }, { revoked: true });
 }

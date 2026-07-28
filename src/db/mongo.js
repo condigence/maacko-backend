@@ -1,34 +1,37 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 import "dotenv/config";
 
-let connection = null;
-const isMockMode = process.env.USE_MOCK === "true";
+// Cached so concurrent callers (every service imports this on startup)
+// share one in-flight connection attempt instead of racing mongoose.connect().
+let connectingPromise = null;
 
-export async function connectMongo() {
-
-  // SAD PATH: Environment flag explicitly tells us to use mock
-  if (isMockMode) {
-    console.log("⚡using mock data,Bypassing MongoDB connection.");
-    return false;
+export function connectMongo() {
+  if (mongoose.connection.readyState === 1) {
+    return Promise.resolve(mongoose.connection);
   }
 
-  if (connection && mongoose.connection.readyState === 1) {
-    return connection;
+  if (!connectingPromise) {
+    const uri = process.env.MONGO_URI;
+    if (!uri) {
+      return Promise.reject(new Error("MONGO_URI is not set"));
+    }
+
+    connectingPromise = mongoose
+      .connect(uri, { serverSelectionTimeoutMS: 5000 })
+      .then((conn) => {
+        console.log("MongoDB connected successfully");
+        return conn;
+      })
+      .catch((error) => {
+        connectingPromise = null; // allow the next call to retry
+        throw error;
+      });
   }
 
-  const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/maako';
-
-  connection = await mongoose.connect(uri, {
-    serverSelectionTimeoutMS: 5000,
-  });
-
-  console.log('MongoDB connected successfully');
-  return connection;
+  return connectingPromise;
 }
 
 export async function disconnectMongo() {
-  if (connection) {
-    await mongoose.disconnect();
-    connection = null;
-  }
+  connectingPromise = null;
+  await mongoose.disconnect();
 }

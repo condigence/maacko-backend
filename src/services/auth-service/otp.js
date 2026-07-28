@@ -1,4 +1,4 @@
-import { getState, save } from "./store.js";
+import OtpCode from "../../models/OtpCode.js";
 import { hashValue, randomOtp } from "./crypto.js";
 
 const OTP_LENGTH = Number(process.env.OTP_LENGTH || 6);
@@ -14,29 +14,22 @@ export class OtpError extends Error {
 }
 
 export async function requestOtp(role, identifier) {
-  const state = getState();
-  const previous = state.otpCodes.filter((o) => o.role === role && o.identifier === identifier);
-  const last = previous[previous.length - 1];
+  const last = await OtpCode.findOne({ role, identifier }).sort({ created_at: -1 });
 
   if (last) {
-    const secondsSinceLast = (Date.now() - new Date(last.created_at).getTime()) / 1000;
+    const secondsSinceLast = (Date.now() - last.created_at.getTime()) / 1000;
     if (secondsSinceLast < RESEND_COOLDOWN_SECONDS) {
       throw new OtpError(429, `Please wait ${Math.ceil(RESEND_COOLDOWN_SECONDS - secondsSinceLast)}s before requesting another OTP`);
     }
   }
 
   const otp = randomOtp(OTP_LENGTH);
-  state.otpCodes.push({
-    id: state.nextOtpId++,
+  await OtpCode.create({
     role,
     identifier,
     otp_hash: hashValue(otp),
-    expires_at: new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000).toISOString(),
-    attempts: 0,
-    consumed: 0,
-    created_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000),
   });
-  await save();
 
   console.log(`[auth-service] OTP for ${role}:${identifier} -> ${otp} (expires in ${OTP_TTL_MINUTES}m)`);
 
@@ -44,30 +37,28 @@ export async function requestOtp(role, identifier) {
 }
 
 export async function verifyOtp(role, identifier, otp) {
-  const state = getState();
-  const candidates = state.otpCodes.filter((o) => o.role === role && o.identifier === identifier && !o.consumed);
-  const record = candidates[candidates.length - 1];
+  const record = await OtpCode.findOne({ role, identifier, consumed: false }).sort({ created_at: -1 });
 
   if (!record) {
     throw new OtpError(400, "No OTP requested for this identifier. Please request a new OTP.");
   }
 
-  if (new Date(record.expires_at) < new Date()) {
+  if (record.expires_at < new Date()) {
     throw new OtpError(400, "OTP has expired. Please request a new one.");
   }
 
   if (record.attempts >= MAX_ATTEMPTS) {
-    record.consumed = 1;
-    await save();
+    record.consumed = true;
+    await record.save();
     throw new OtpError(429, "Too many incorrect attempts. Please request a new OTP.");
   }
 
   if (hashValue(otp) !== record.otp_hash) {
     record.attempts += 1;
-    await save();
+    await record.save();
     throw new OtpError(401, "Incorrect OTP.");
   }
 
-  record.consumed = 1;
-  await save();
+  record.consumed = true;
+  await record.save();
 }

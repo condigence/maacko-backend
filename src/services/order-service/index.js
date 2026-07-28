@@ -1,24 +1,10 @@
 import { Router } from "express";
-import { createRequire } from "node:module";
-import { connectMySQL } from "../../db/mysql.js";
+import Order from "../../models/Order.js";
 import { setupSwagger } from "../../../swagger-docs/order/order-swagger.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 
-const require = createRequire(import.meta.url);
-const mockOrders = require("./data/mockOrder.json").orders;
-
 export const orderRouter = Router();
 setupSwagger(orderRouter);
-
-// Returns a connected MySQL connection or null (mock mode / connection failure)
-async function tryMySQL() {
-  try {
-    const conn = await connectMySQL();
-    return conn;
-  } catch {
-    return null;
-  }
-}
 
 orderRouter.get("/health", (_req, res) => {
   res.json({ service: "order-service", status: "ok" });
@@ -26,50 +12,23 @@ orderRouter.get("/health", (_req, res) => {
 
 // GET /orders — list all orders (admin only)
 orderRouter.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
-  const conn = await tryMySQL();
-  if (!conn) {
-    return res.json({
-      service: "order-service",
-      source: "mock",
-      orders: mockOrders,
-    });
-  }
   try {
-    const [rows] = await conn.query("SELECT * FROM orders");
-    const orders = rows.map((r) => ({
-      ...r,
-      items: JSON.parse(r.items),
-      shipping_address: JSON.parse(r.shipping_address),
-    }));
+    const orders = await Order.find({});
     res.json({ service: "order-service", orders });
   } catch (error) {
-    console.error("MySQL query failed", error.message);
+    console.error("MongoDB query failed", error.message);
     res.status(500).json({ error: "Failed to fetch orders" });
   }
 });
 
 // GET /orders/:id — get single order
 orderRouter.get("/:id", requireAuth, async (req, res) => {
-  const conn = await tryMySQL();
-  if (!conn) {
-    const order = mockOrders.find((o) => o._id === req.params.id);
-    if (!order) return res.status(404).json({ error: "Order not found" });
-    return res.json({ service: "order-service", source: "mock", order });
-  }
   try {
-    const [rows] = await conn.query("SELECT * FROM orders WHERE id = ?", [
-      req.params.id,
-    ]);
-    if (rows.length === 0)
-      return res.status(404).json({ error: "Order not found" });
-    const order = {
-      ...rows[0],
-      items: JSON.parse(rows[0].items),
-      shipping_address: JSON.parse(rows[0].shipping_address),
-    };
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: "Order not found" });
     res.json({ service: "order-service", order });
   } catch (error) {
-    console.error("MySQL query failed", error.message);
+    console.error("MongoDB query failed", error.message);
     res.status(500).json({ error: "Failed to fetch order" });
   }
 });
@@ -109,48 +68,18 @@ orderRouter.post("/", requireAuth, async (req, res) => {
     });
   }
 
-  const conn = await tryMySQL();
-  if (!conn) {
-    const stubOrder = {
-      id: `mock_order_${Date.now()}`,
+  try {
+    const order = await Order.create({
       user_id,
       items,
       shipping_address,
       status: "pending",
       payment_status: "pending",
       total_amount,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    return res
-      .status(201)
-      .json({ service: "order-service", source: "mock", order: stubOrder });
-  }
-
-  try {
-    const [result] = await conn.query(
-      "INSERT INTO orders (user_id, items, shipping_address, status, payment_status, total_amount) VALUES (?, ?, ?, 'pending', 'pending', ?)",
-      [
-        user_id,
-        JSON.stringify(items),
-        JSON.stringify(shipping_address),
-        total_amount,
-      ],
-    );
-    res.status(201).json({
-      service: "order-service",
-      order: {
-        id: result.insertId,
-        user_id,
-        items,
-        shipping_address,
-        status: "pending",
-        payment_status: "pending",
-        total_amount,
-      },
     });
+    res.status(201).json({ service: "order-service", order });
   } catch (error) {
-    console.error("MySQL insert failed", error.message);
+    console.error("MongoDB insert failed", error.message);
     res.status(500).json({ error: "Failed to create order" });
   }
 });
@@ -192,51 +121,24 @@ orderRouter.put(
         });
     }
 
-    const conn = await tryMySQL();
-    if (!conn) {
-      return res
-        .status(503)
-        .json({
-          error:
-            "Database unavailable — status updates not supported in mock mode",
-        });
-    }
-
     try {
-      const fields = [];
-      const values = [];
-      if (status) {
-        fields.push("status = ?");
-        values.push(status);
-      }
-      if (payment_status) {
-        fields.push("payment_status = ?");
-        values.push(payment_status);
-      }
-      values.push(req.params.id);
+      const update = {};
+      if (status) update.status = status;
+      if (payment_status) update.payment_status = payment_status;
 
-      const [result] = await conn.query(
-        `UPDATE orders SET ${fields.join(", ")} WHERE id = ?`,
-        values,
-      );
-      if (result.affectedRows === 0)
-        return res.status(404).json({ error: "Order not found" });
+      const order = await Order.findByIdAndUpdate(req.params.id, update, {
+        returnDocument: "after",
+        runValidators: true,
+      });
+      if (!order) return res.status(404).json({ error: "Order not found" });
 
-      const [rows] = await conn.query("SELECT * FROM orders WHERE id = ?", [
-        req.params.id,
-      ]);
-      const order = {
-        ...rows[0],
-        items: JSON.parse(rows[0].items),
-        shipping_address: JSON.parse(rows[0].shipping_address),
-      };
       res.json({
         service: "order-service",
         message: "Order updated successfully",
         order,
       });
     } catch (error) {
-      console.error("MySQL update failed", error.message);
+      console.error("MongoDB update failed", error.message);
       res.status(500).json({ error: "Failed to update order" });
     }
   },
