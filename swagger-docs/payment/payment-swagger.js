@@ -35,7 +35,7 @@ export function setupSwagger(router) {
  *         description: Service is healthy
  * /items:
  *   get:
- *     summary: List the mock item catalog (id, name, price in INR)
+ *     summary: List the item catalog (id, name, price in INR)
  *     responses:
  *       200:
  *         description: Item catalog

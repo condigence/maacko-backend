@@ -1,56 +1,51 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import PaymentItem from "../../models/PaymentItem.js";
+import PaymentOrder from "../../models/PaymentOrder.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, "data");
-const ITEMS_FILE = path.join(DATA_DIR, "items.json");
-const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
-
-// No real DB for this service yet — orders are persisted to a flat JSON file
-// so an order placed in one request is still there (and marked paid) on the next.
 export async function loadItemCatalog() {
-  const raw = await readFile(ITEMS_FILE, "utf8");
-  return JSON.parse(raw);
+  const items = await PaymentItem.find({});
+  return items.map((item) => ({ id: item.item_id, name: item.name, price: item.price }));
 }
 
-async function readOrders() {
-  try {
-    const raw = await readFile(ORDERS_FILE, "utf8");
-    return JSON.parse(raw);
-  } catch (error) {
-    if (error.code === "ENOENT") return [];
-    throw error;
-  }
-}
-
-async function writeOrders(orders) {
-  await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(ORDERS_FILE, JSON.stringify(orders, null, 2));
+function toApiOrder(doc) {
+  return {
+    orderId: doc.order_id,
+    items: doc.items,
+    amount: doc.amount,
+    currency: doc.currency,
+    receipt: doc.receipt,
+    status: doc.status,
+    paymentId: doc.payment_id,
+    createdAt: doc.created_at,
+    updatedAt: doc.updated_at,
+  };
 }
 
 export async function saveOrder(order) {
-  const orders = await readOrders();
-  orders.push(order);
-  await writeOrders(orders);
-  return order;
+  const doc = await PaymentOrder.create({
+    order_id: order.orderId,
+    items: order.items,
+    amount: order.amount,
+    currency: order.currency,
+    receipt: order.receipt,
+    status: order.status,
+  });
+  return toApiOrder(doc);
 }
 
 export async function findOrder(orderId) {
-  const orders = await readOrders();
-  return orders.find((order) => order.orderId === orderId) || null;
+  const doc = await PaymentOrder.findOne({ order_id: orderId });
+  return doc ? toApiOrder(doc) : null;
 }
 
 export async function updateOrderStatus(orderId, status, extra = {}) {
-  const orders = await readOrders();
-  const index = orders.findIndex((order) => order.orderId === orderId);
-  if (index === -1) return null;
+  const update = { status };
+  if (extra.paymentId) update.payment_id = extra.paymentId;
 
-  orders[index] = { ...orders[index], ...extra, status, updatedAt: new Date().toISOString() };
-  await writeOrders(orders);
-  return orders[index];
+  const doc = await PaymentOrder.findOneAndUpdate({ order_id: orderId }, update, { returnDocument: "after" });
+  return doc ? toApiOrder(doc) : null;
 }
 
 export async function listOrders() {
-  return readOrders();
+  const docs = await PaymentOrder.find({}).sort({ created_at: -1 });
+  return docs.map(toApiOrder);
 }

@@ -39,6 +39,15 @@ jobs:
           node --check src/services/order-service/index.js
 
       - name: Start server smoke test
+        env:
+          # Placeholder values so the app boots for a /health check - no real
+          # secrets here, and none are needed since this doesn't exercise any
+          # DB or Razorpay call. Mongo connection failure is non-fatal by design.
+          RAZORPAY_KEY_ID: rzp_test_ci_placeholder
+          RAZORPAY_KEY_SECRET: ci_placeholder_secret
+          JWT_ACCESS_SECRET: ci-test-access-secret
+          JWT_REFRESH_SECRET: ci-test-refresh-secret
+          MONGO_URI: mongodb://127.0.0.1:27017/ci
         run: |
           npm start > /tmp/maacko.log 2>&1 &
           SERVER_PID=$!
