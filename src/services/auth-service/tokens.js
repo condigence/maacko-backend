@@ -1,0 +1,80 @@
+import jwt from "jsonwebtoken";
+import RefreshToken from "../../models/RefreshToken.js";
+import { getAccountById } from "./db.js";
+import { hashValue, randomId } from "./crypto.js";
+
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "dev-access-secret-change-me";
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "dev-refresh-secret-change-me";
+const ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || "15m";
+const REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+
+export class AuthError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
+
+function signAccessToken(account) {
+  return jwt.sign({ sub: account.id, role: account.role, identifier: account.identifier }, ACCESS_SECRET, {
+    expiresIn: ACCESS_EXPIRES_IN,
+  });
+}
+
+async function issueRefreshToken(account) {
+  const jti = randomId();
+  const token = jwt.sign({ sub: account.id, role: account.role, jti }, REFRESH_SECRET, {
+    expiresIn: REFRESH_EXPIRES_IN,
+  });
+
+  const { exp } = jwt.decode(token);
+  await RefreshToken.create({
+    account_id: account.id,
+    jti,
+    token_hash: hashValue(token),
+    expires_at: new Date(exp * 1000),
+  });
+
+  return token;
+}
+
+export async function issueTokenPair(account) {
+  const [accessToken, refreshToken] = [signAccessToken(account), await issueRefreshToken(account)];
+  return { accessToken, refreshToken, tokenType: "Bearer", expiresIn: ACCESS_EXPIRES_IN };
+}
+
+export async function rotateRefreshToken(oldToken) {
+  let payload;
+  try {
+    payload = jwt.verify(oldToken, REFRESH_SECRET);
+  } catch {
+    throw new AuthError(401, "Invalid or expired refresh token");
+  }
+
+  const record = await RefreshToken.findOne({ jti: payload.jti, account_id: payload.sub });
+
+  if (!record || record.revoked || hashValue(oldToken) !== record.token_hash || record.expires_at < new Date()) {
+    throw new AuthError(401, "Refresh token is no longer valid. Please log in again.");
+  }
+
+  const account = await getAccountById(payload.sub);
+  if (!account) {
+    throw new AuthError(401, "Account no longer exists");
+  }
+
+  record.revoked = true;
+  await record.save();
+
+  return issueTokenPair(account);
+}
+
+export async function revokeRefreshToken(token) {
+  let payload;
+  try {
+    payload = jwt.verify(token, REFRESH_SECRET);
+  } catch {
+    return;
+  }
+
+  await RefreshToken.updateOne({ jti: payload.jti, account_id: payload.sub }, { revoked: true });
+}

@@ -1,0 +1,21 @@
+{
+  "name": "maako",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node src/bootstrap.js",
+    "dev": "nodemon src/bootstrap.js",
+    "seed:payment-items": "node src/scripts/seedPaymentItems.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^9.7.4",
+    "nodemon": "^3.1.14",
+    "razorpay": "^2.9.8",
+    "swagger-jsdoc": "^6.0.0",
+    "swagger-ui-express": "^5.0.0"
+  }
+}
