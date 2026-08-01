@@ -34,10 +34,14 @@ userRouter.get("/:id", async (req, res) => {
 });
 
 userRouter.post("/", requireAuth, requireRole("admin"), async (req, res) => {
-  const { first_name, last_name, email, mobile, role_id } = req.body;
+  const { first_name, last_name, email, mobile, role } = req.body;
 
   if (!first_name || !email) {
     return res.status(400).json({ error: "First name and email are required" });
+  }
+
+  if (role !== undefined && !["customer", "vendor", "admin"].includes(role)) {
+    return res.status(400).json({ error: "role must be one of: customer, vendor, admin" });
   }
 
   try {
@@ -46,7 +50,7 @@ userRouter.post("/", requireAuth, requireRole("admin"), async (req, res) => {
       last_name: last_name || "",
       email,
       mobile: mobile || null,
-      role_id: role_id || 1,
+      role: role || "customer",
     });
     res.status(201).json({ service: "user-service", user });
   } catch (error) {
