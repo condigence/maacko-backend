@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import RefreshToken from "../../models/RefreshToken.js";
-import { getAccountById } from "./db.js";
+import { getUserById } from "./db.js";
 import { hashValue, randomId } from "./crypto.js";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "dev-access-secret-change-me";
@@ -15,21 +15,23 @@ export class AuthError extends Error {
   }
 }
 
-function signAccessToken(account) {
-  return jwt.sign({ sub: account.id, role: account.role, identifier: account.identifier }, ACCESS_SECRET, {
-    expiresIn: ACCESS_EXPIRES_IN,
-  });
+function signAccessToken(user) {
+  return jwt.sign(
+    { sub: user.id, role: user.role, email: user.email, mobile: user.mobile },
+    ACCESS_SECRET,
+    { expiresIn: ACCESS_EXPIRES_IN }
+  );
 }
 
-async function issueRefreshToken(account) {
+async function issueRefreshToken(user) {
   const jti = randomId();
-  const token = jwt.sign({ sub: account.id, role: account.role, jti }, REFRESH_SECRET, {
+  const token = jwt.sign({ sub: user.id, role: user.role, jti }, REFRESH_SECRET, {
     expiresIn: REFRESH_EXPIRES_IN,
   });
 
   const { exp } = jwt.decode(token);
   await RefreshToken.create({
-    account_id: account.id,
+    user_id: user.id,
     jti,
     token_hash: hashValue(token),
     expires_at: new Date(exp * 1000),
@@ -38,11 +40,13 @@ async function issueRefreshToken(account) {
   return token;
 }
 
-export async function issueTokenPair(account) {
-  const [accessToken, refreshToken] = [signAccessToken(account), await issueRefreshToken(account)];
+export async function issueTokenPair(user) {
+  const [accessToken, refreshToken] = [signAccessToken(user), await issueRefreshToken(user)];
   return { accessToken, refreshToken, tokenType: "Bearer", expiresIn: ACCESS_EXPIRES_IN };
 }
 
+// Rotation: the old refresh token is revoked and a brand new access+refresh
+// pair is issued. A refresh token can only ever be redeemed once.
 export async function rotateRefreshToken(oldToken) {
   let payload;
   try {
@@ -51,21 +55,21 @@ export async function rotateRefreshToken(oldToken) {
     throw new AuthError(401, "Invalid or expired refresh token");
   }
 
-  const record = await RefreshToken.findOne({ jti: payload.jti, account_id: payload.sub });
+  const record = await RefreshToken.findOne({ jti: payload.jti, user_id: payload.sub });
 
   if (!record || record.revoked || hashValue(oldToken) !== record.token_hash || record.expires_at < new Date()) {
-    throw new AuthError(401, "Refresh token is no longer valid. Please log in again.");
+    throw new AuthError(401, "Refresh token is no longer valid. Please sign in again.");
   }
 
-  const account = await getAccountById(payload.sub);
-  if (!account) {
+  const user = await getUserById(payload.sub);
+  if (!user) {
     throw new AuthError(401, "Account no longer exists");
   }
 
   record.revoked = true;
   await record.save();
 
-  return issueTokenPair(account);
+  return issueTokenPair(user);
 }
 
 export async function revokeRefreshToken(token) {
@@ -76,5 +80,5 @@ export async function revokeRefreshToken(token) {
     return;
   }
 
-  await RefreshToken.updateOne({ jti: payload.jti, account_id: payload.sub }, { revoked: true });
+  await RefreshToken.updateOne({ jti: payload.jti, user_id: payload.sub }, { revoked: true });
 }
