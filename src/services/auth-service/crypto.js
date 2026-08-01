@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 
 export function hashValue(value) {
-  return crypto.createHash("sha256").update(value).digest("hex");
+  return crypto.createHash("sha256").update(String(value)).digest("hex");
 }
 
 export function randomOtp(length = 6) {

@@ -12,7 +12,7 @@ const options = {
     info: {
       title: "Auth Service API",
       version: "1.0.0",
-      description: "OTP based login issuing JWT access/refresh tokens, scoped by role via the URL (customer/vendor/master)",
+      description: "Two-step signup (dual email+mobile OTP) and two-step login (single identifier OTP), both issuing an access/refresh token pair.",
     },
     servers: [{ url: "/api/auth" }],
     components: {
@@ -38,9 +38,9 @@ export function setupSwagger(router) {
  *     responses:
  *       200:
  *         description: Service is healthy
- * /otp/request:
+ * /signup:
  *   post:
- *     summary: Request an OTP for customer login (base URL flow)
+ *     summary: Step 1 - collect profile info, send an OTP to email and mobile
  *     requestBody:
  *       required: true
  *       content:
@@ -48,15 +48,26 @@ export function setupSwagger(router) {
  *           schema:
  *             type: object
  *             properties:
- *               identifier:
+ *               name:
  *                 type: string
- *                 example: customer@example.com
+ *                 example: Jane Doe
+ *               role:
+ *                 type: string
+ *                 enum: [customer, vendor, admin]
+ *               email:
+ *                 type: string
+ *                 example: jane@example.com
+ *               mobile:
+ *                 type: string
+ *                 example: "9876543210"
  *     responses:
  *       200:
- *         description: OTP generated
- * /otp/verify:
+ *         description: OTP generated and sent to both channels
+ *       409:
+ *         description: An account already exists for this email/mobile
+ * /signup/verify:
  *   post:
- *     summary: Verify OTP and receive access/refresh tokens for a customer
+ *     summary: Step 2 - verify both OTPs together, creates the user and issues a token
  *     requestBody:
  *       required: true
  *       content:
@@ -64,16 +75,24 @@ export function setupSwagger(router) {
  *           schema:
  *             type: object
  *             properties:
- *               identifier:
+ *               email:
  *                 type: string
- *               otp:
+ *               email_otp:
+ *                 type: string
+ *               mobile:
+ *                 type: string
+ *               mobile_otp:
  *                 type: string
  *     responses:
- *       200:
- *         description: Login successful
- * /vendor/otp/request:
+ *       201:
+ *         description: Signup successful, user created, accessToken + refreshToken issued
+ *       401:
+ *         description: Incorrect email and/or mobile OTP
+ *       409:
+ *         description: An account already exists for this email/mobile
+ * /login:
  *   post:
- *     summary: Request an OTP for vendor login
+ *     summary: Step 1 - identifier (email or mobile) + role must match an existing user, sends an OTP
  *     requestBody:
  *       required: true
  *       content:
@@ -81,15 +100,20 @@ export function setupSwagger(router) {
  *           schema:
  *             type: object
  *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [customer, vendor, admin]
  *               identifier:
  *                 type: string
- *                 example: 9876543210
+ *                 example: jane@example.com
  *     responses:
  *       200:
- *         description: OTP generated
- * /vendor/otp/verify:
+ *         description: OTP generated and sent to the identifier
+ *       404:
+ *         description: No account found for this identifier and role
+ * /login/verify:
  *   post:
- *     summary: Verify OTP and receive access/refresh tokens for a vendor
+ *     summary: Step 2 - verify the OTP, issues an access/refresh token pair
  *     requestBody:
  *       required: true
  *       content:
@@ -97,46 +121,18 @@ export function setupSwagger(router) {
  *           schema:
  *             type: object
  *             properties:
- *               identifier:
+ *               role:
  *                 type: string
- *               otp:
- *                 type: string
- *     responses:
- *       200:
- *         description: Login successful
- * /master/otp/request:
- *   post:
- *     summary: Request an OTP for master/admin login
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               identifier:
- *                 type: string
- *                 example: admin@maacko.com
- *     responses:
- *       200:
- *         description: OTP generated
- * /master/otp/verify:
- *   post:
- *     summary: Verify OTP and receive access/refresh tokens for an admin
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
+ *                 enum: [customer, vendor, admin]
  *               identifier:
  *                 type: string
  *               otp:
  *                 type: string
  *     responses:
  *       200:
- *         description: Login successful
+ *         description: Login successful, accessToken + refreshToken issued
+ *       401:
+ *         description: Incorrect OTP
  * /token/refresh:
  *   post:
  *     summary: Exchange a refresh token for a new access/refresh token pair (rotates the refresh token)
@@ -152,6 +148,8 @@ export function setupSwagger(router) {
  *     responses:
  *       200:
  *         description: New token pair issued
+ *       401:
+ *         description: Invalid, expired, or already-used refresh token
  * /logout:
  *   post:
  *     summary: Revoke a refresh token
@@ -167,14 +165,4 @@ export function setupSwagger(router) {
  *     responses:
  *       200:
  *         description: Logged out successfully
- * /me:
- *   get:
- *     summary: Get the authenticated account from the access token
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Current account
- *       401:
- *         description: Missing or invalid access token
  */

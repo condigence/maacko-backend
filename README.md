@@ -4,7 +4,7 @@ This project is a modular monolith: a single Express app, running as a single pr
 
 Every domain is backed by the same MongoDB cluster (via Mongoose) — there is no mock/fallback mode and no other database. If `MONGO_URI` is unreachable, DB-backed endpoints return real errors instead of silently serving fake data.
 
-- an auth service (OTP + JWT login for customer/vendor/admin), accounts/OTP codes/refresh tokens stored in MongoDB
+- an auth service: two-step dual OTP signup (email + mobile, both verified together) and two-step single-identifier OTP login (email or mobile, role-scoped) - both issue a JWT access/refresh token pair, with rotation and logout.
 - a user service backed by MongoDB
 - a product service backed by MongoDB
 - a payment service (Razorpay Standard Checkout) with its item catalog and orders stored in MongoDB
@@ -16,9 +16,16 @@ Every domain is backed by the same MongoDB cluster (via Mongoose) — there is n
 - `src/app.js` - Builds the single Express app: connects to MongoDB, JSON body parsing, root `/health`, and mounts every service router under its `/api/*` prefix
 - `src/bootstrap.js` - Entrypoint; starts the app on a single `PORT`
 - `src/db/mongo.js` - MongoDB/Mongoose connection helper (single shared connection for every service)
-- `src/models/` - Mongoose models: `User`, `Product`, `Order`, `Account`, `OtpCode`, `RefreshToken`, `PaymentItem`, `PaymentOrder`
+- `src/models/` - Mongoose models: `User`, `SignupOtp`, `LoginOtp`, `RefreshToken`, `Product`, `Order`, `PaymentItem`, `PaymentOrder`
 - `src/scripts/seedPaymentItems.js` - One-time seed for the payment-service item catalog (`npm run seed:payment-items`)
-- `src/services/auth-service/index.js` - Auth router (OTP login, JWT access/refresh tokens)
+- `src/services/auth-service/index.js` - Auth router, including `/token/refresh` and `/logout`
+- `src/services/auth-service/signup.js` - `POST /signup` and `POST /signup/verify` route handlers
+- `src/services/auth-service/login.js` - `POST /login` and `POST /login/verify` route handlers
+- `src/services/auth-service/otp.js` - OTP generation/verification against `SignupOtp` (dual-channel) and `LoginOtp` (single-channel)
+- `src/services/auth-service/db.js` - `User` lookups/creation for signup and login
+- `src/services/auth-service/tokens.js` - JWT access/refresh token issuance, rotation, and revocation against `RefreshToken`
+- `src/services/auth-service/crypto.js` - OTP/JWT-id hashing and random generation helpers
+- `src/services/auth-service/validators.js` - Email/mobile/role/identifier validation and normalization
 - `src/services/user-service/index.js` - User router
 - `src/services/product-service/index.js` - Product router
 - `src/services/order-service/index.js` - Order router
@@ -72,15 +79,12 @@ Everything — auth, users, products, payments, orders — runs in this one proc
 ## API Endpoints
 
 - Health check: `GET /health`
-- Customer OTP request: `POST /api/auth/otp/request`
-- Customer OTP verify (login): `POST /api/auth/otp/verify`
-- Vendor OTP request: `POST /api/auth/vendor/otp/request`
-- Vendor OTP verify (login): `POST /api/auth/vendor/otp/verify`
-- Master/admin OTP request: `POST /api/auth/master/otp/request`
-- Master/admin OTP verify (login): `POST /api/auth/master/otp/verify`
-- Refresh tokens (any role): `POST /api/auth/token/refresh`
-- Logout (any role): `POST /api/auth/logout`
-- Current account (any role, requires access token): `GET /api/auth/me`
+- Signup step 1 - request OTP (email + mobile): `POST /api/auth/signup`
+- Signup step 2 - verify both OTPs, creates the user, issues tokens: `POST /api/auth/signup/verify`
+- Login step 1 - request OTP (email or mobile + role): `POST /api/auth/login`
+- Login step 2 - verify the OTP, issues tokens: `POST /api/auth/login/verify`
+- Refresh tokens (rotates the refresh token): `POST /api/auth/token/refresh`
+- Logout (revokes a refresh token): `POST /api/auth/logout`
 - Get users: `GET /api/users`
 - Get user by id: `GET /api/users/:id`
 - Create user (admin only): `POST /api/users`
@@ -126,7 +130,7 @@ MONGO_URI=mongodb+srv://<user>:<password>@<cluster-host>/<db-name>
 
 Any MongoDB works (a local `mongod`, Docker, or a hosted Atlas cluster) — just point `MONGO_URI` at it. If the connection fails or `MONGO_URI` is unset, the server still starts (so a bad DB doesn't take down the whole app in serverless), but every DB-backed route returns a `500` until it's fixed — check the server logs for the connection error.
 
-- **Auth service** — `Account`, `OtpCode`, `RefreshToken` collections. No separate setup needed; documents are created as accounts log in.
+- **Auth service** — `SignupOtp` and `LoginOtp` (self-expiring via MongoDB TTL indexes), `User` (created only once signup's OTPs verify), and `RefreshToken` (also self-expiring). No separate setup needed.
 - **User, Product, Order services** — `User`, `Product`, `Order` collections, created on first write. No manual schema/table setup required (Mongoose enforces the schema at the application layer).
 - **Payment service** — `PaymentItem` (item catalog) and `PaymentOrder` (Razorpay orders) collections. The item catalog has no create endpoint (`checkout.html` and the demo cart reference fixed item ids directly), so seed it once per cluster:
 
@@ -151,30 +155,54 @@ Any MongoDB works (a local `mongod`, Docker, or a hosted Atlas cluster) — just
 4. The server recomputes `HMAC-SHA256(order_id + "|" + payment_id, RAZORPAY_KEY_SECRET)` and compares it to `razorpay_signature` using a constant-time comparison. Only on a match is the stored order flipped to `status: "paid"` — this is the "order placed" confirmation. A mismatch returns `400` and leaves the order unpaid.
 5. If the user dismisses the modal or the payment fails, `checkout.html` shows that state and no order is ever marked paid.
 
-## Auth Flow (OTP + JWT)
+## Signup Flow (dual OTP + JWT)
 
-1. Request an OTP on the role-specific endpoint (`/api/auth/otp/request` for customer, `/api/auth/vendor/otp/request` for vendor, `/api/auth/master/otp/request` for admin/master).
-2. In development (`NODE_ENV` not `production`), the response includes a `devOtp` field so you can test without a real SMS/email provider wired up. The OTP is also printed to the server console.
-3. Verify the OTP on the matching `.../otp/verify` endpoint. On success you get back `accessToken` (15m default) and `refreshToken` (7d default), scoped to that role.
+1. `POST /api/auth/signup` with `{ "name", "role", "email", "mobile" }`. The server validates the payload, checks no `User` already exists for that email/mobile, then generates and sends **two separate OTPs** - one to the email, one to the mobile number. No DB row is created at this point; the pending signup (name/role/email/mobile + both hashed OTPs) is held in the `SignupOtp` collection with a 5-minute TTL.
+2. In development (`NODE_ENV` not `production`), the response includes `devEmailOtp`/`devMobileOtp` fields so you can test without a real SMS/email provider wired up. Both are also printed to the server console.
+3. `POST /api/auth/signup/verify` with `{ "email", "email_otp", "mobile", "mobile_otp" }`. **Both** OTPs must be correct, and must belong to the same signup attempt (the exact email+mobile pair they were issued together for) - an OTP from one signup attempt can't be mixed with another. Only on full success is the `User` document created and an `accessToken` + `refreshToken` pair issued.
 4. Call protected routes with `Authorization: Bearer <accessToken>`.
-5. When the access token expires, call `POST /api/auth/token/refresh` with the `refreshToken` to get a new pair (old refresh token is rotated/invalidated).
-6. Call `POST /api/auth/logout` with the `refreshToken` to revoke it early.
+5. When the access token expires, call `POST /api/auth/token/refresh` with the `refreshToken` to get a new pair. The old refresh token is rotated - it's revoked the moment it's used, so it can't be replayed. Reusing an already-rotated or revoked refresh token fails with `401`.
+6. Call `POST /api/auth/logout` with the `refreshToken` to revoke it early (e.g. on sign-out).
+
+```bash
+curl -X POST http://localhost:3000/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Jane Doe","role":"customer","email":"jane@example.com","mobile":"9876543210"}'
+
+curl -X POST http://localhost:3000/api/auth/signup/verify \
+  -H "Content-Type: application/json" \
+  -d '{"email":"jane@example.com","email_otp":"<devEmailOtp>","mobile":"9876543210","mobile_otp":"<devMobileOtp>"}'
+
+curl -X POST http://localhost:3000/api/auth/token/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken":"<refreshToken from previous step>"}'
+
+curl -X POST http://localhost:3000/api/auth/logout \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken":"<refreshToken>"}'
+```
+
+## Login Flow (single-identifier OTP + JWT)
+
+For an *existing* user (created via signup) to sign back in.
+
+1. `POST /api/auth/login` with `{ "role", "identifier" }`, where `identifier` is either the email or the mobile number. The server looks up a `User` matching both `identifier` (email or mobile) **and** `role` - if none matches, it returns a generic `404` regardless of whether the identifier doesn't exist at all or exists under a different role, so the endpoint can't be used to enumerate registered accounts. On a match, it sends a single OTP to that identifier.
+2. In development, the response includes a `devOtp` field, and it's also printed to the server console.
+3. `POST /api/auth/login/verify` with `{ "role", "identifier", "otp" }`. On success, issues a fresh `accessToken` + `refreshToken` pair for that user - same rotation/logout mechanics as signup's tokens.
+
+```bash
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"role":"customer","identifier":"jane@example.com"}'
+
+curl -X POST http://localhost:3000/api/auth/login/verify \
+  -H "Content-Type: application/json" \
+  -d '{"role":"customer","identifier":"jane@example.com","otp":"<devOtp>"}'
+```
 
 ## Example Requests
 
-### Vendor login (OTP request + verify)
-
-```bash
-curl -X POST http://localhost:3000/api/auth/vendor/otp/request \
-  -H "Content-Type: application/json" \
-  -d '{"identifier":"9876543210"}'
-
-curl -X POST http://localhost:3000/api/auth/vendor/otp/verify \
-  -H "Content-Type: application/json" \
-  -d '{"identifier":"9876543210","otp":"<devOtp from previous response>"}'
-```
-
-### Create a product as a vendor (requires the accessToken from login)
+### Create a product as a vendor (requires an accessToken from signup)
 
 ```bash
 curl -X POST http://localhost:3000/api/products \
@@ -189,7 +217,7 @@ curl -X POST http://localhost:3000/api/products \
 curl -X POST http://localhost:3000/api/users \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <accessToken>" \
-  -d '{"first_name":"Alice","email":"alice@example.com"}'
+  -d '{"first_name":"Alice","email":"alice@example.com","mobile":"9876500001","role":"customer"}'
 ```
 
 ### Get a user by id
@@ -276,5 +304,5 @@ curl -X POST http://localhost:3000/api/orders \
 - The Swagger documentation files live in the `swagger-docs/auth`, `swagger-docs/user`, `swagger-docs/product`, `swagger-docs/payment` and `swagger-docs/order` folders.
 - `create-order` resolves item prices server-side from the `PaymentItem` collection — the client only sends `{ id, quantity }` pairs, never a price, so a request can't be tampered with to pay less.
 - Open `http://localhost:3000/api/payments/checkout.html` directly in a browser to run a real end-to-end Razorpay test-mode payment and get a real `razorpay_payment_id`/`razorpay_signature` pair to feed into `verify-payment` from Insomnia.
-- OTP delivery is a dev-mode stub (console log + `devOtp` in the response). Swap the `console.log` in `src/services/auth-service/otp.js` for a real SMS/email provider before going to production, and make sure `NODE_ENV=production` so `devOtp` stops being echoed back.
+- OTP delivery is a dev-mode stub (console log + `devEmailOtp`/`devMobileOtp` in the response). Swap the `console.log` calls in `src/services/auth-service/otp.js` for real email/SMS providers before going to production, and make sure `NODE_ENV=production` so the dev OTPs stop being echoed back.
 - JWT secrets fall back to hardcoded dev defaults if not set — always set `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET` via `.env` for anything beyond local testing.

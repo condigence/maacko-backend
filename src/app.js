@@ -2,9 +2,9 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { connectMongo } from "./db/mongo.js";
+import { authRouter } from "./services/auth-service/index.js";
 import { userRouter } from "./services/user-service/index.js";
 import { productRouter } from "./services/product-service/index.js";
-import { authRouter } from "./services/auth-service/index.js";
 import { paymentRouter } from "./services/payment-service/index.js";
 import { orderRouter } from "./services/order-service/index.js";
 
