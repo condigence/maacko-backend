@@ -4,7 +4,7 @@ import { setupSwagger } from "../../../swagger-docs/product/product-swagger.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 
 export const productRouter = Router();
-setupSwagger(productRouter);
+// setupSwagger(productRouter);
 
 productRouter.get("/health", (_req, res) => {
   res.json({ service: "product-service", status: "ok" });

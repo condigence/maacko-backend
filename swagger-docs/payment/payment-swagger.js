@@ -22,7 +22,7 @@ const options = {
 export const swaggerSpec = swaggerJSDoc(options);
 
 export function setupSwagger(router) {
-  router.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  router.use("/api-docs/payments", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
 
 /**

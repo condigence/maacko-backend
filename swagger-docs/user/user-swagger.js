@@ -22,7 +22,7 @@ const options = {
 export const swaggerSpec = swaggerJSDoc(options);
 
 export function setupSwagger(router) {
-  router.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  router.use("/api-docs/users", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 }
 
 /**
@@ -33,6 +33,102 @@ export function setupSwagger(router) {
  *     responses:
  *       200:
  *         description: Service is healthy
+ * /register:
+ *   post:
+ *     summary: Register a new user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [customer, vendor, admin]
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               phone:
+ *                 type: string
+ *               photo:
+ *                 type: string
+ *               address:
+ *                 type: object
+ *                 properties:
+ *                   line1:
+ *                     type: string
+ *                   city:
+ *                     type: string
+ *                   state:
+ *                     type: string
+ *                   pincode:
+ *                     type: string
+ *                   country:
+ *                     type: string
+ *               storeAddress:
+ *                 type: object
+ *                 properties:
+ *                   line1:
+ *                     type: string
+ *                   city:
+ *                     type: string
+ *                   state:
+ *                     type: string
+ *                   pincode:
+ *                     type: string
+ *                   country:
+ *                     type: string
+ *               pan:
+ *                 type: string
+ *               gst:
+ *                 type: string
+ *               bankDetails:
+ *                 type: object
+ *                 properties:
+ *                   accountHolderName:
+ *                     type: string
+ *                   accountNumber:
+ *                     type: string
+ *                   ifscCode:
+ *                     type: string
+ *                   bankName:
+ *                     type: string
+ *               permanentAddress:
+ *                 type: object
+ *                 properties:
+ *                   line1:
+ *                     type: string
+ *                   city:
+ *                     type: string
+ *                   state:
+ *                     type: string
+ *                   pincode:
+ *                     type: string
+ *                   country:
+ *                     type: string
+ *               temporaryAddress:
+ *                 type: object
+ *                 properties:
+ *                   line1:
+ *                     type: string
+ *                   city:
+ *                     type: string
+ *                   state:
+ *                     type: string
+ *                   pincode:
+ *                     type: string
+ *                   country:
+ *                     type: string
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Validation failed
+ *       409:
+ *         description: Duplicate email or phone
  * /:
  *   get:
  *     summary: Get all users
@@ -63,18 +159,19 @@ export function setupSwagger(router) {
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: User fetched successfully
  *   put:
- *     summary: Update a user
+ *     summary: Replace a user
+ *     description: Full replace. Email and phone cannot be changed; contact admin if update is required.
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -82,13 +179,94 @@ export function setupSwagger(router) {
  *           schema:
  *             type: object
  *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [customer, vendor, admin]
  *               name:
  *                 type: string
  *               email:
  *                 type: string
+ *                 format: email
+ *               phone:
+ *                 type: string
+ *               photo:
+ *                 type: string
+ *               address:
+ *                 type: object
+ *                 properties:
+ *                   line1:
+ *                     type: string
+ *                   city:
+ *                     type: string
+ *                   state:
+ *                     type: string
+ *                   pincode:
+ *                     type: string
+ *                   country:
+ *                     type: string
+ *               storeAddress:
+ *                 type: object
+ *                 properties:
+ *                   line1:
+ *                     type: string
+ *                   city:
+ *                     type: string
+ *                   state:
+ *                     type: string
+ *                   pincode:
+ *                     type: string
+ *                   country:
+ *                     type: string
+ *               pan:
+ *                 type: string
+ *               gst:
+ *                 type: string
+ *               bankDetails:
+ *                 type: object
+ *                 properties:
+ *                   accountHolderName:
+ *                     type: string
+ *                   accountNumber:
+ *                     type: string
+ *                   ifscCode:
+ *                     type: string
+ *                   bankName:
+ *                     type: string
+ *               permanentAddress:
+ *                 type: object
+ *                 properties:
+ *                   line1:
+ *                     type: string
+ *                   city:
+ *                     type: string
+ *                   state:
+ *                     type: string
+ *                   pincode:
+ *                     type: string
+ *                   country:
+ *                     type: string
+ *               temporaryAddress:
+ *                 type: object
+ *                 properties:
+ *                   line1:
+ *                     type: string
+ *                   city:
+ *                     type: string
+ *                   state:
+ *                     type: string
+ *                   pincode:
+ *                     type: string
+ *                   country:
+ *                     type: string
  *     responses:
  *       200:
- *         description: User updated successfully
+ *         description: User replaced successfully
+ *       400:
+ *         description: Validation failed or email/phone cannot be changed
+ *       404:
+ *         description: User not found
+ *       409:
+ *         description: Duplicate email or phone
  *   delete:
  *     summary: Delete a user
  *     parameters:
@@ -96,7 +274,7 @@ export function setupSwagger(router) {
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: User deleted successfully
